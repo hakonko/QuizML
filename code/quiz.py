@@ -1,6 +1,6 @@
 import pandas as pd
 import random
-from problem import Problem
+from code.problem import Problem
 
 class Quiz:
     def __init__(self, num_problems, user_file, quiz_file):

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
-from quiz import Quiz
+from code.quiz import Quiz
 
 from matplotlib import pyplot as plt
 from PIL import Image, ImageTk
@@ -155,7 +155,6 @@ class QuizApp:
 
 
 if __name__ == "__main__":
-    from quiz import Quiz
       # sørg for at denne klassen er definert riktig
     NUM_PROBLEMS = 3
     BASE_DIR = Path.cwd().parent
