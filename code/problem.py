@@ -1,4 +1,5 @@
 class Problem:
+    
     def __init__(self, question, latex, alts, correct_alt, genre):
         self.question = question
         self.latex = latex

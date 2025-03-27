@@ -14,13 +14,12 @@ class QuizApp:
         self.current_idx = 0
         self.selected_answer = tk.StringVar()
         self.results = []
-        self.latex_image = None  # for å holde referansen til bildet
+        self.latex_image = None 
 
         self.master.title("IN3310 Pensum Quiz")
         self.master.geometry("800x600")
 
-
-        # Upper frame
+        ##### upper frame
         top_frame = tk.Frame(master, bg="white")
         top_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -42,9 +41,7 @@ class QuizApp:
         self.formula_label = tk.Label(self.formula_frame, bg="white")
         self.formula_label.pack(padx=10, pady=(5, 10), anchor="nw")
 
-
-
-        # Lower frame
+        ##### Lower frame
         bottom_frame = tk.Frame(master)
         bottom_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
@@ -73,7 +70,7 @@ class QuizApp:
 
         latex_str = latex_str.strip()
 
-        # Fjern alle ytre dollartegn
+        # removing $-signs in latex code
         while latex_str.startswith("$"):
             latex_str = latex_str[1:]
         while latex_str.endswith("$"):
@@ -81,13 +78,12 @@ class QuizApp:
 
         return latex_str
 
-
     def render_latex(self, latex_str):
         latex_str = self.clean_latex_string(latex_str)
         if not latex_str:
             return None
 
-        plt.rc('mathtext', fontset='stix')  # <- Dette gir stilig serif-font
+        plt.rc('mathtext', fontset='stix')  # serif font
         plt.rc('font', family='serif', size=13)
 
         plt.clf()
@@ -110,7 +106,7 @@ class QuizApp:
         buf.seek(0)
         img = Image.open(buf)
         return ImageTk.PhotoImage(img)
-
+    
     def load_problem(self):
         problem = self.quiz.get_problem(self.current_idx)
         self.question_label.config(text=problem.question)
@@ -119,7 +115,7 @@ class QuizApp:
         for idx, alt in enumerate(problem.alts):
             self.radio_buttons[idx].config(text=alt, value=str(idx))
 
-        # Render LaTeX if present
+        # rendering LaTeX if present
         if problem.latex:
             self.formula_title.config(text="Use this formula:")
             self.latex_image = self.render_latex(problem.latex)
@@ -127,7 +123,6 @@ class QuizApp:
         else:
             self.formula_title.config(text="")
             self.formula_label.config(image='')
-
 
     def submit_answer(self):
         selected = self.selected_answer.get()
@@ -155,7 +150,7 @@ class QuizApp:
 
 
 if __name__ == "__main__":
-      # sørg for at denne klassen er definert riktig
+
     NUM_PROBLEMS = 3
     BASE_DIR = Path.cwd().parent
     USER_FILE = BASE_DIR / 'users' / 'users.csv'
