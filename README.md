@@ -1,4 +1,4 @@
-# IN3310 Quiz App version 0.1
+# QuizMachine version 0.1
 
 A cozy little quiz app built with Python and Tkinter — perfect for reviewing IN3310 curriculum topics in a structured, interactive way.
 
