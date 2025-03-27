@@ -30,7 +30,7 @@ class QuizApp:
         self.formula_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
         self.question_label = tk.Label(self.question_frame, text="", wraplength=380,
-                                       justify="left", bg="white", fg="black", font=("Helvetica", 16))
+                                       justify="left", bg="white", fg="black", font=("Helvetica", 20))
         self.question_label.pack(padx=10, pady=10, anchor="nw")
 
         self.formula_title = tk.Label(self.formula_frame, text="", font=("Helvetica", 16),
