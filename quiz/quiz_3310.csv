@@ -1,0 +1,10 @@
+_question;_latex;_alt1;_alt2;_alt3;_alt4;_alt5;_correct_alt;_genre
+In logistic regression for binary classification, what is the meaning/interpretation of the output of the sigmoid function for an input x?;;Estimate of parameters w;Cross-entropy loss value;Predicted probability Pr({y=1 | x});True label;Bias;_alt3;1
+Which of the following options explains why convolutional neural networks became popular?;;Parameter sharing;Localized Pattern Detection;Hierarchical Pattern Recognition across Layers;All options;Pooling layers;_alt4;2
+What is not an advantage of residual connection in deep neural networks?;;Identity+ optional non-linearity;Never worse than identity;If a convolution block is not useful, it will be bypassed;Visual info processed at various scales & concatenated along depth;Helps reduce the number of parameters in the network;_alt4;3
+"A classification model is evaluated on 3 classes: A, B, and C. For each class, you are given the precision and recall values at each relevant threshold.The average precision (AP) is defined as the area under the precision-recall curve for each class.
+Suppose we approximate this area using the 11-point interpolated Average Precision method, where precision is measured at 11 recall levels: {0.0, 0.1, 0.2, ..., 1.0}. For each recall level r, the precision is defined as the maximum precision obtained for any recall ≥ r.
+You are given the following interpolated precision values:
+Class A: [1.0, 1.0, 1.0, 0.9, 0.9, 0.85, 0.8, 0.7, 0.6, 0.5, 0.5]
+Class B: [1.0, 1.0, 0.9, 0.9, 0.85, 0.8, 0.75, 0.7, 0.6, 0.6, 0.5]
+Class C: [0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.6, 0.55, 0.5, 0.4]";mAP = \frac{1}{N} \sum_{i=1}^N AP_i,  \text{ where N is the number of classes};0.700;0.727;0.750;0.800;0.833;_alt3;4
