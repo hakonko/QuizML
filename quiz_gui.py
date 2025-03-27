@@ -19,6 +19,19 @@ class QuizApp:
         self.master.title("IN3310 Pensum Quiz")
         self.master.geometry("800x600")
 
+        #### status bar (topmost)
+        self.status_bar = tk.Frame(master, bg="#7F00FF", height=30)
+        self.status_bar.pack(side=tk.TOP, fill=tk.X)
+
+        self.left_status = tk.Label(self.status_bar, text="QuizML 0.1      User: Test User",
+                                    bg="#7F00FF", fg="white", font=("Helvetica", 16))
+        self.left_status.pack(side=tk.LEFT, padx=10)
+
+        self.right_status = tk.Label(self.status_bar, text="", bg="#7F00FF",
+                                    fg="white", font=("Helvetica", 16))
+        self.right_status.pack(side=tk.RIGHT, padx=10)
+
+
         ##### upper frame
         top_frame = tk.Frame(master, bg="white")
         top_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -30,7 +43,7 @@ class QuizApp:
         self.formula_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
 
         self.question_label = tk.Label(self.question_frame, text="", wraplength=380,
-                                       justify="left", bg="white", fg="black", font=("Helvetica", 20))
+                                       justify="left", bg="white", fg="black", font=("Helvetica", 16))
         self.question_label.pack(padx=10, pady=10, anchor="nw")
 
         self.formula_title = tk.Label(self.formula_frame, text="", font=("Helvetica", 16),
@@ -123,6 +136,11 @@ class QuizApp:
         else:
             self.formula_title.config(text="")
             self.formula_label.config(image='')
+
+        total = len(self.quiz.problems)
+        current = self.current_idx + 1
+        self.right_status.config(text=f"Question {current} of {total}")
+
 
     def submit_answer(self):
         selected = self.selected_answer.get()

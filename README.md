@@ -1,4 +1,4 @@
-# QuizMachine version 0.1
+# QuizML version 0.1
 
 A cozy little quiz app built with Python and Tkinter — perfect for reviewing IN3310 curriculum topics in a structured, interactive way.
 
@@ -29,3 +29,4 @@ python quiz_gui.py
 - Create your own user and keep track of your curriculum status
 - Save and revive quizzes
 - Status bar and Inspera-inspired progress bar
+- Backend: create new questions and edit old ones
