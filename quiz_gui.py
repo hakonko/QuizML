@@ -152,7 +152,8 @@ class QuizApp:
 if __name__ == "__main__":
 
     NUM_PROBLEMS = 3
-    BASE_DIR = Path.cwd().parent
+    BASE_DIR = Path.cwd()
+
     USER_FILE = BASE_DIR / 'users' / 'users.csv'
     QUIZ_FILE = BASE_DIR / 'quiz' / 'quiz_3310.csv'
 
