@@ -24,3 +24,8 @@ pip install -r requirements.txt
 ```bash
 python quiz_gui.py
 ```
+
+## Work in progress
+- Create your own user and keep track of your curriculum status
+- Save and revive quizzes
+- Status bar and Inspera-inspired progress bar
