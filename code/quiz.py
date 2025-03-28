@@ -1,6 +1,8 @@
 import pandas as pd
 import random
+import pickle
 from code.problem import Problem
+from datetime import datetime
 
 class Quiz:
     def __init__(self, num_problems, user_file, quiz_file):
@@ -9,6 +11,8 @@ class Quiz:
         self.quiz_file = quiz_file
         self.genres = None
         self.problems = []
+        self.results = []
+        self.date_taken = datetime.now()
 
         self._create_quiz()
     
@@ -53,4 +57,8 @@ class Quiz:
     
     def get_problem(self, idx):
         return self.problems[idx]
+    
+    def save_quiz(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
 
