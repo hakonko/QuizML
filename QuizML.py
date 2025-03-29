@@ -31,10 +31,12 @@ class MainApp(QMainWindow):
         self.dashboard = DashboardApp(
             self.user,
             self.user_db,
-            quiz_callback=self.start_new_quiz, 
+            quiz_callback=self.start_new_quiz,
             retake_callback=self.retake_quiz,
-            edit_callback=self.open_question_editor
+            edit_callback=self.open_question_editor,
+            return_to_login=self.return_to_login  # <-- denne er ny!
         )
+
 
         self.setCentralWidget(self.dashboard)
 
@@ -65,6 +67,12 @@ class MainApp(QMainWindow):
         self.editor_window.close()
         self.show()
         self.refresh_dashboard()
+
+    def return_to_login(self):
+        self.user = None
+        self.close()
+        self.__init__()  # Restart appen og vis login på nytt
+
 
     def open_question_editor(self): # Importér editoren
         self.editor_window = QuestionEditor(quiz_file=QUIZ_FILE, return_callback=self.return_from_editor)  # Du kan sende inn self eller nødvendig data

@@ -2,13 +2,14 @@ import sys
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QRadioButton, QButtonGroup, QMessageBox
+    QHBoxLayout, QRadioButton, QButtonGroup, QMessageBox, QFrame
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import Qt, pyqtSignal
 from code.quiz import Quiz
 from code.userdata import User
 
+NUM_VERSION = "0.31"
 LATIN_MODERN = "Latin Modern Roman"
 SANS_SERIF = "Roboto"
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
@@ -22,21 +23,19 @@ class QuizApp(QWidget):
         self.current_idx = 0
         self.username = user.username
         self.user = user
-        
+
         self.setWindowTitle("QuizML")
         self.setGeometry(100, 100, 1000, 700)
         self.setStyleSheet("background-color: white;")
 
-        # Layouts
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(20, 20, 20, 20)  # Ytre marger
+        main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(20)
 
         status_layout = QHBoxLayout()
         question_layout = QVBoxLayout()
 
-        # Status Bar
-        self.left_status = QLabel(f"QuizML 0.2      User: {self.username}")
+        self.left_status = QLabel(f"QuizML {NUM_VERSION}      User: {self.username}")
         self.right_status = QLabel("")
         self.left_status.setStyleSheet("background-color: white; color: black;")
         self.right_status.setStyleSheet("background-color: white; color: black;")
@@ -44,47 +43,47 @@ class QuizApp(QWidget):
         status_layout.addStretch()
         status_layout.addWidget(self.right_status)
 
-        # Question
-        self.question_label = QLabel("")
-        self.question_label.setWordWrap(True)
-        self.question_label.setStyleSheet(
-            f"font-family: {LATIN_MODERN}; font-size: 20pt; background-color: white; color: black; padding: 10px;"
-        )
-        self.question_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        question_layout.addWidget(self.question_label)
+        self.question_view = QWebEngineView()
+        self.question_view.setMinimumHeight(120)
+        question_layout.addWidget(self.question_view)
 
-        # "Use the formula" label
         self.formula_title = QLabel("Use the formula")
         self.formula_title.setStyleSheet("font-size: 14pt; color: black; padding-left: 10px;")
-        self.formula_title.setVisible(False)  # Skjules hvis det ikke er latex
+        self.formula_title.setVisible(False)
         question_layout.addWidget(self.formula_title)
 
-        # Formel-visning
         self.formula_view = QWebEngineView()
         self.formula_view.setMinimumHeight(100)
         question_layout.addWidget(self.formula_view)
 
-        # === Bunnseksjon med lilla bakgrunn ===
         self.bottom_container = QWidget()
-        self.bottom_container.setStyleSheet("background-color: #8000c8; border-radius: 8px;")
+        self.bottom_container.setStyleSheet("background-color: white; border: 2px solid #8000c8; border-radius: 8px;")
         bottom_layout = QVBoxLayout(self.bottom_container)
         bottom_layout.setContentsMargins(20, 20, 20, 20)
         bottom_layout.setSpacing(10)
 
-        # Alternativer
         self.button_group = QButtonGroup()
         self.radio_buttons = []
+        self.option_views = []
 
         for i in range(5):
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(5)
+
             rb = QRadioButton()
-            rb.setStyleSheet(
-                f"color: white; font-family: '{LATIN_MODERN}'; font-size: 16px;"
-            )
+            rb.setStyleSheet("color: black;")
             self.radio_buttons.append(rb)
             self.button_group.addButton(rb, i)
-            bottom_layout.addWidget(rb)
 
-        # Submit-knapp
+            view = QWebEngineView()
+            view.setMinimumHeight(30)
+            self.option_views.append(view)
+
+            row.addWidget(rb)
+            row.addWidget(view, stretch=1)
+            bottom_layout.addLayout(row)
+
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit_answer)
         self.submit_button.setStyleSheet("""
@@ -100,59 +99,79 @@ class QuizApp(QWidget):
             }
         """)
 
-        # Juster submit-knappen til høyre
         submit_layout = QHBoxLayout()
         submit_layout.addStretch()
         submit_layout.addWidget(self.submit_button)
         bottom_layout.addLayout(submit_layout)
 
-        # Assemble
         main_layout.addLayout(status_layout)
         main_layout.addLayout(question_layout)
-        main_layout.addWidget(self.bottom_container)  # Hele lilla seksjonen
+        main_layout.addWidget(self.bottom_container)
         self.setLayout(main_layout)
 
         self.load_problem()
 
+    def render_mathjax_html(self, content):
+        import html
+        import re
+
+        if not isinstance(content, str):
+            content = str(content)
+
+        parts = re.split(r"(\$.*?\$)", content)
+        processed = ""
+        for part in parts:
+            if part.startswith("$") and part.endswith("$"):
+                processed += part
+            else:
+                processed += html.escape(part)
+
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <script src='https://polyfill.io/v3/polyfill.min.js?features=es6'></script>
+        <script>
+            window.MathJax = {{
+            tex: {{ inlineMath: [['$','$']] }},
+            svg: {{ fontCache: 'global' }}
+            }};
+        </script>
+        <script type='text/javascript' id='MathJax-script' async
+            src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'>
+        </script>
+        </head>
+        <body style='font-family:{LATIN_MODERN}; font-size: 16pt; color: black; background-color: white;'>
+        {processed}
+        </body>
+        </html>
+        """
+
     def load_problem(self):
         problem = self.quiz.get_problem(self.current_idx)
-        self.question_label.setText(problem.question)
+        question_html = self.render_mathjax_html(problem.question)
+        self.question_view.setHtml(question_html)
+
         self.button_group.setExclusive(False)
         for rb in self.radio_buttons:
             rb.setChecked(False)
         self.button_group.setExclusive(True)
 
         for idx, alt in enumerate(problem.alts):
-            self.radio_buttons[idx].setText(str(alt))  # <-- legg til str() her
+            alt_html = self.render_mathjax_html(alt)
+            self.option_views[idx].setHtml(alt_html)
 
         if problem.latex:
             self.formula_title.setVisible(True)
-            self.render_latex(problem.latex)
+            self.formula_view.setHtml(self.render_mathjax_html(f"$$ {problem.latex} $$"))
         else:
             self.formula_title.setVisible(False)
             self.formula_view.setHtml("")
 
-
         total = len(self.quiz.problems)
         current = self.current_idx + 1
         self.right_status.setText(f"Question {current} of {total}")
-
-    def render_latex(self, latex_str):
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-          <script type="text/javascript" id="MathJax-script" async
-            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-          </script>
-        </head>
-        <body style="background-color:white;">
-          <div style="font-size: 16pt; color: black;">$$ {latex_str} $$</div>
-        </body>
-        </html>
-        """
-        self.formula_view.setHtml(html)
 
     def submit_answer(self):
         selected_id = self.button_group.checkedId()
@@ -216,15 +235,3 @@ class QuizApp(QWidget):
 
         self.quiz_completed.emit(self.quiz)
         self.close()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    NUM_PROBLEMS = 20
-    BASE_DIR = Path.cwd()
-    USER_FILE = BASE_DIR / 'users' / 'users.csv'
-    QUIZ_FILE = BASE_DIR / 'quiz' / 'quiz_3310.csv'
-
-    quiz = Quiz(NUM_PROBLEMS, USER_FILE, QUIZ_FILE)
-    window = QuizApp(quiz)
-    window.show()
-    sys.exit(app.exec())

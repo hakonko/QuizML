@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QInputDialog
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QInputDialog, QSizePolicy
 from PyQt6.QtCore import Qt
 from code.userdata import User, UserDatabase
 import bcrypt
@@ -14,6 +14,7 @@ class LoginPopup(QDialog):
         self.user = None
 
         layout = QVBoxLayout()
+        layout.setSpacing(20)
 
         self.label = QLabel("QuizML")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -22,33 +23,69 @@ class LoginPopup(QDialog):
 
         self.username_entry = QLineEdit()
         self.username_entry.setPlaceholderText("User Name")
-        self.username_entry.setStyleSheet("background-color: white; color: black; padding: 6px;")
+        self.username_entry.setStyleSheet("""
+            background-color: white; color: black; padding: 6px;
+            border-radius: 10px; border: none;
+        """)
         layout.addWidget(self.username_entry)
 
         self.password_entry = QLineEdit()
         self.password_entry.setPlaceholderText("Password")
         self.password_entry.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_entry.setStyleSheet("background-color: white; color: black; padding: 6px;")
+        self.password_entry.setStyleSheet("""
+            background-color: white; color: black; padding: 6px;
+            border-radius: 10px; border: none;
+        """)
         layout.addWidget(self.password_entry)
 
+        # Make Enter trigger login
+        self.password_entry.returnPressed.connect(self.login)
+        self.username_entry.returnPressed.connect(self.login)
+
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        button_style = """
+            QPushButton {
+                font-weight: bold;
+                border-radius: 10px;
+                padding: 8px 16px;
+                min-width: 100px;
+            }
+        """
 
         self.signup_button = QPushButton("Sign up")
         self.signup_button.clicked.connect(self.signup)
-        self.signup_button.setStyleSheet(
-            "background-color: black; color: white; font-weight: bold; border-radius: 10px; padding: 8px 16px;"
-        )
-        button_layout.addWidget(self.signup_button)
+        self.signup_button.setStyleSheet(button_style + """
+            QPushButton {
+                background-color: #8000c8;
+                color: white;
+                border: 2px solid white;
+            }
+            QPushButton:hover {
+                background-color: #a050e0;
+            }
+        """)
+        self.signup_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.login_button = QPushButton("Login")
         self.login_button.clicked.connect(self.login)
-        self.login_button.setStyleSheet(
-            "background-color: black; color: white; font-weight: bold; border-radius: 10px; padding: 8px 16px;"
-        )
+        self.login_button.setStyleSheet(button_style + """
+            QPushButton {
+                background-color: black;
+                color: white;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #333;
+            }
+        """)
+        self.login_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        button_layout.addWidget(self.signup_button)
         button_layout.addWidget(self.login_button)
-
-
         layout.addLayout(button_layout)
+
         self.setLayout(layout)
 
     def login(self):
