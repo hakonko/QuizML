@@ -25,7 +25,7 @@ class QuizApp(QWidget):
         self.user = user
 
         self.setWindowTitle("QuizML")
-        self.setGeometry(100, 100, 1000, 700)
+        self.setGeometry(100, 100, 1100, 700)
         self.setStyleSheet("background-color: white;")
 
         main_layout = QVBoxLayout()
@@ -235,3 +235,15 @@ class QuizApp(QWidget):
 
         self.quiz_completed.emit(self.quiz)
         self.close()
+
+    def keyPressEvent(self, event):
+        key = event.key()
+
+        if Qt.Key.Key_1 <= key <= Qt.Key.Key_5:
+            idx = key - Qt.Key.Key_1
+            if idx < len(self.radio_buttons):
+                self.radio_buttons[idx].setChecked(True)
+
+        elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.submit_answer()
+

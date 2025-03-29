@@ -12,7 +12,7 @@ class QuestionEditor(QWidget):
         self.return_callback = return_callback
         self.setWindowTitle("Edit Questions")
         self.setStyleSheet("background-color: black; color: white;")
-        self.setMinimumSize(1000, 600)
+        self.setMinimumSize(1100, 700)
 
         self.df = pd.read_csv(self.quiz_file, sep=';')
         self.selected_index = None
@@ -21,9 +21,28 @@ class QuestionEditor(QWidget):
 
         # === Left side: list of questions ===
         self.question_list = QListWidget()
-        self.question_list.setStyleSheet("background-color: black; color: white; font-size: 12pt;")
+
+        self.question_list.setStyleSheet("""
+            QListWidget {
+                color: white;
+                font-size: 14pt;
+                border: none;
+                background-color: transparent;
+            }
+            QListWidget::item {
+                border-bottom: 1px dashed #8000c8;
+                padding: 8px 4px;
+            }
+            QListWidget::item:selected {
+                background-color: #8000c8;
+            }
+        """)
+
+        #self.question_list.setStyleSheet("background-color: black; color: white; font-size: 12pt;")
         self.populate_question_list()
         self.question_list.itemClicked.connect(self.load_question_data)
+        self.question_list.currentItemChanged.connect(self.load_question_data)
+
 
         left_panel = QVBoxLayout()
         left_panel.addWidget(QLabel("Questions:"))
@@ -95,7 +114,7 @@ class QuestionEditor(QWidget):
         return label
 
     def styled_widget(self, widget):
-        widget.setStyleSheet("border: 2px solid #8000c8; border-radius: 6px; padding: 4px;")
+        widget.setStyleSheet("border: 2px solid #bbbbbb; border-radius: 6px; padding: 4px;")
         return widget
 
     def populate_question_list(self):
@@ -106,7 +125,10 @@ class QuestionEditor(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, idx)
             self.question_list.addItem(item)
 
-    def load_question_data(self, item):
+    def load_question_data(self, item, _=None):
+        if item is None:
+            return
+
         idx = item.data(Qt.ItemDataRole.UserRole)
         self.selected_index = idx
         row = self.df.loc[idx]

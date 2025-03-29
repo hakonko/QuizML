@@ -34,14 +34,14 @@ class MainApp(QMainWindow):
             quiz_callback=self.start_new_quiz,
             retake_callback=self.retake_quiz,
             edit_callback=self.open_question_editor,
-            return_to_login=self.return_to_login  # <-- denne er ny!
+            return_to_login=self.return_to_login
         )
-
 
         self.setCentralWidget(self.dashboard)
 
     def refresh_dashboard(self):
         self.dashboard.refresh_quiz_list()
+        self.dashboard.update_stats()
 
     def start_new_quiz(self, num_questions):
         quiz = Quiz(num_questions, user_file=None, quiz_file=QUIZ_FILE, user=self.user)

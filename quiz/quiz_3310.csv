@@ -6,8 +6,7 @@ What is not an advantage of residual connection in deep neural networks?;;Identi
 Suppose we approximate this area using the 11-point interpolated Average Precision method, where precision is measured at 11 recall levels: $\{0.0, 0.1, 0.2, ..., 1.0\}$. For each recall level $r$, the precision is defined as the maximum precision obtained for any recall $\geq r$. You are given the following interpolated precision values:
 Class A: $[1.0, 1.0, 1.0, 0.9, 0.9, 0.85, 0.8, 0.7, 0.6, 0.5, 0.5]$
 Class B: $[1.0, 1.0, 0.9, 0.9, 0.85, 0.8, 0.75, 0.7, 0.6, 0.6, 0.5]$
-Class C: $[0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.6, 0.55, 0.5, 0.4]$";mAP = \frac{1}{N} \sum_{i=1}^N AP_i,  \text{ where N is the number of classes};0.700;0.727;0.750;0.800;0.833;_alt3;"Performance Estimation
-";4
+Class C: $[0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.6, 0.55, 0.5, 0.4]$";mAP = \frac{1}{N} \sum_{i=1}^N AP_i,  \text{ where N is the number of classes};0.700;0.727;0.750;0.800;0.833;_alt3;Performance Estimation;4
 A 1D convolutional layer has kernel size 3 and stride 2. A second layer on top uses kernel size 5 and stride 3. A third layer uses kernel size 3 and stride 1. How many input elements from the original input affect one output value of the third layer (assume no padding, center neuron)?;;15;11;17;21;13;_alt3;CNNs;5
 Which of the following is true about dropout?;;Dropout removes neurons during inference.;Dropout reduces training time significantly.;Dropout prevents co-adaptation and improves generalization.;Dropout increases the number of trainable parameters.;Dropout enforces weight sharing.;_alt3;Neural Nets;6
 Given a $3 \times 2$ input matrix and a transposed convolution with kernel size $2 \times 2$, stride 2, and no padding, what is the spatial size of the output?;\text{Output} = \text{Stride} \times (\text{Input size} - 1) + \text{Kernel size};$6 \times 4$;$5 \times 3$;$7 \times 5$;$4 \times 2$;$3 \times 2$;_alt1;CNNs;7
