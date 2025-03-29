@@ -22,7 +22,7 @@ pip install -r requirements.txt
 3. Run the program
 
 ```bash
-python quiz_gui.py
+python QuizML.py
 ```
 
 ## Work in progress
