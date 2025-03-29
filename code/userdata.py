@@ -1,18 +1,27 @@
 import pickle
 from pathlib import Path
+from collections import defaultdict
+
+def default_stat():
+    return {'correct': 0, 'wrong': 0}
 
 class User:
-    def __init__(self, name, username, password_hash):
+    def __init__(self, name, username, password_hash, saved_quizzes=None, question_stats=None):
         self.name = name
         self.username = username
         self.password_hash = password_hash
+        self.saved_quizzes = saved_quizzes if saved_quizzes is not None else []
 
-        self.saved_quizzes = []
-        
-        self.total_score = 0.0
+        # Bruk eksisterende stats hvis det finnes, ellers lag ny defaultdict
+        self.question_stats = (
+            defaultdict(default_stat, question_stats)
+            if question_stats is not None
+            else defaultdict(default_stat)
+        )
 
     def add_quiz(self, quiz):
         self.saved_quizzes.append(quiz)
+
 
 
 class UserDatabase:
@@ -23,9 +32,15 @@ class UserDatabase:
     def _load_users(self):
         if self.filepath.exists():
             with open(self.filepath, 'rb') as f:
-                return pickle.load(f)
+                self.users = pickle.load(f)
             
-        return {}
+            for user in self.users.values():
+                if not isinstance(user.question_stats, defaultdict):
+                    user.question_stats = defaultdict(default_stat, user.question_stats)
+        else:
+            self.users = {}
+            
+        return self.users
     
     def save(self):
         with open(self.filepath, 'wb') as f:

@@ -7,7 +7,8 @@ A little quiz app built with Python and PyQt — perfect for quizzing myself on 
 - Multiple choice questions loaded from CSV files
 - Support for LaTeX-rendered math formulas
 - Radio buttons for answering questions
-- Create your own user and keep track of your quizzes
+- Create your own user
+- Dashboard: Keep track of old quizzes and create new ones
 - Saving user data and quiz data encrypted
 
 ## Getting started
@@ -26,5 +27,5 @@ python QuizML.py
 ```
 
 ## Work in progress
-- Status bar and Inspera-inspired progress bar
+- Inspera-inspired progress bar, jump back and forth in the questions.
 - Backend: create new questions and edit old ones

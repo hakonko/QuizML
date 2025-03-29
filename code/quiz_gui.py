@@ -7,18 +7,21 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import Qt, pyqtSignal
 from code.quiz import Quiz
+from code.userdata import User
 
 LATIN_MODERN = "Latin Modern Roman"
 SANS_SERIF = "Roboto"
+GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
 
 class QuizApp(QWidget):
     quiz_completed = pyqtSignal(object)
 
-    def __init__(self, quiz: Quiz, username: str):
+    def __init__(self, quiz: Quiz, user: User):
         super().__init__()
         self.quiz = quiz
         self.current_idx = 0
-        self.username = username
+        self.username = user.username
+        self.user = user
         
         self.setWindowTitle("QuizML")
         self.setGeometry(100, 100, 1000, 700)
@@ -159,7 +162,17 @@ class QuizApp(QWidget):
 
         problem = self.quiz.get_problem(self.current_idx)
         correct_idx = int(problem.correct_alt.replace('_alt', '')) - 1
+
         self.quiz.results.append(selected_id == correct_idx)
+        pid = problem.pid
+        if pid not in self.user.question_stats:
+            self.user.question_stats[pid] = {"correct": 0, "wrong": 0}
+
+        if selected_id == correct_idx:
+            self.user.question_stats[pid]['correct'] += 1
+        else:
+            self.user.question_stats[pid]['wrong'] += 1
+
         self.current_idx += 1
         if self.current_idx < len(self.quiz.problems):
             self.load_problem()
@@ -170,9 +183,15 @@ class QuizApp(QWidget):
         correct_answers = sum(self.quiz.results)
         total = len(self.quiz.results)
         percent = round((correct_answers / total) * 100)
+
+        for limit, grade in sorted(GRADE_LIMITS.items(), reverse=True):
+            if percent >= limit:
+                self.quiz.grade = grade
+                break
+
         msg = QMessageBox(self)
         msg.setWindowTitle("Quiz Complete")
-        msg.setText(f"You got {correct_answers} out of {total} correct ({percent}%).")
+        msg.setText(f"You got {correct_answers} out of {total} correct ({percent}%). Grade: {self.quiz.grade}")
         msg.setIcon(QMessageBox.Icon.Information)
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
 

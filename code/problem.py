@@ -1,11 +1,12 @@
 class Problem:
     
-    def __init__(self, question, latex, alts, correct_alt, genre):
+    def __init__(self, question, latex, alts, correct_alt, genre, pid=None):
         self.question = question
         self.latex = latex
         self.alts = alts
         self.correct_alt = correct_alt
         self.genre = genre
+        self.pid = pid
 
     def get_question(self):
         return self.question
