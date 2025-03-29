@@ -1,14 +1,14 @@
-# QuizML version 0.1
+# QuizML version 0.2
 
-A cozy little quiz app built with Python and Tkinter — perfect for reviewing IN3310 curriculum topics in a structured, interactive way.
+A little quiz app built with Python and PyQt — perfect for quizzing myself on mathematical and computer related curriculum.
 
 ## Features
 
 - Multiple choice questions loaded from CSV files
-- Support for LaTeX-rendered math formulas using `matplotlib`
+- Support for LaTeX-rendered math formulas
 - Radio buttons for answering questions
-- Final result screen with your score in percent
-- Clean 4-part GUI layout with questions, formulas, choices, and submission
+- Create your own user and keep track of your quizzes
+- Saving user data and quiz data encrypted
 
 ## Getting started
 
@@ -26,7 +26,5 @@ python quiz_gui.py
 ```
 
 ## Work in progress
-- Create your own user and keep track of your curriculum status
-- Save and revive quizzes
 - Status bar and Inspera-inspired progress bar
 - Backend: create new questions and edit old ones
