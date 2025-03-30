@@ -1,6 +1,6 @@
-# QuizML version 0.5
+# QuizML version 0.65
 
-A little quiz app built with Python and PyQt — perfect for quizzing myself on mathematical and computer related curriculum.
+A little quiz app built with Python and PyQt — perfect for quizzing myself on mathematical and computer related curriculum from the University of Oslo subject **IN3310 - Deep Learning for Image Analysis**.
 
 ## Features
 
@@ -16,7 +16,7 @@ A little quiz app built with Python and PyQt — perfect for quizzing myself on 
 - Images in quiz
 - Get overview over right and wrong answers
 
-## Getting started
+## Wanna try for yourself?
 
 1. Clone the repo
 2. Install dependencies:
@@ -35,4 +35,4 @@ python QuizML.py
 
 - Time constraint
 - Quiz multiple subjects
-- Inspera-inspired progress bar, jump back and forth in questions.
+- Inspera-inspired progress bar, jump back and forth in questions
