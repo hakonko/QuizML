@@ -1,4 +1,4 @@
-# QuizML version 0.31
+# QuizML version 0.4
 
 A little quiz app built with Python and PyQt — perfect for quizzing myself on mathematical and computer related curriculum.
 

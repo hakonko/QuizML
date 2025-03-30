@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from code.quiz import Quiz
 from code.userdata import User
 
-NUM_VERSION = "0.31"
+NUM_VERSION = "0.4"
 LATIN_MODERN = "Latin Modern Roman"
 SANS_SERIF = "Roboto"
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
@@ -158,7 +158,7 @@ class QuizApp(QWidget):
             rb.setChecked(False)
         self.button_group.setExclusive(True)
 
-        for idx, alt in enumerate(problem.alts):
+        for idx, alt in enumerate(problem.alternatives):
             alt_html = self.render_mathjax_html(alt)
             self.option_views[idx].setHtml(alt_html)
 

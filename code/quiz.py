@@ -20,8 +20,14 @@ class Quiz:
 
 
     def _create_quiz(self):
-        df = pd.read_csv(self.quiz_file, sep=';')
-        self.genres = df['_genre'].unique()
+        try:
+            with open("data/quizdata.pkl", "rb") as f:
+                all_problems = pickle.load(f)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load quizdata.pkl: {e}")
+
+        # Samle alle sjangre
+        self.genres = list({p.genre for p in all_problems})
         random.shuffle(self.genres)
 
         genre_counts = {genre: 1 for genre in self.genres}
@@ -35,112 +41,26 @@ class Quiz:
                 remaining -= 1
 
         self.problems = []
-        used_indices = set()
 
         def get_error_rate(pid):
             stats = self.user.question_stats.get(pid, {"correct": 0, "wrong": 0})
             total = stats["correct"] + stats["wrong"]
-            return (stats["wrong"] / total) if total > 0 else 0.5  # ukjente får middels prioritet
+            return (stats["wrong"] / total) if total > 0 else 0.5
 
+        used_pids = set()
         for genre in self.genres:
-            df_genre = df[df['_genre'] == genre].copy()
-            n = min(len(df_genre), genre_counts[genre])
+            genre_problems = [p for p in all_problems if p.genre == genre and p.pid not in used_pids]
+            n = min(len(genre_problems), genre_counts[genre])
+            genre_problems.sort(key=lambda p: get_error_rate(p.pid), reverse=True)
+            selected = genre_problems[:n]
+            used_pids.update(p.pid for p in selected)
+            self.problems.extend(selected)
 
-            # Sorter etter feilrate
-            df_genre["_error_rate"] = df_genre['_pid'].apply(get_error_rate)
-            chosen = df_genre.sort_values(by="_error_rate", ascending=False).head(n)
-            used_indices.update(chosen.index)
-
-            for _, row in chosen.iterrows():
-                alts = [row['_alt1'], row['_alt2'], row['_alt3'], row['_alt4'], row['_alt5']]
-                problem = Problem(
-                    question=row['_question'],
-                    latex=row['_latex'] if pd.notna(row['_latex']) else None,
-                    alts=alts,
-                    correct_alt=row['_correct_alt'],
-                    genre=row['_genre'],
-                    pid=row['_pid']
-                )
-                self.problems.append(problem)
-
-        while len(self.problems) < self.num_problems:
-            df_remaining = df[~df.index.isin(used_indices)].copy()  # <- dette er viktig!   
-            if df_remaining.empty:
-                break
-
-            df_remaining.loc[:, "_error_rate"] = df_remaining['_pid'].apply(get_error_rate)
-            row = df_remaining.sort_values(by="_error_rate", ascending=False).iloc[0]
-            used_indices.add(row.name)
-
-            alts = [row['_alt1'], row['_alt2'], row['_alt3'], row['_alt4'], row['_alt5']]
-            problem = Problem(
-                question=row['_question'],
-                latex=row['_latex'] if pd.notna(row['_latex']) else None,
-                alts=alts,
-                correct_alt=row['_correct_alt'],
-                genre=row['_genre'],
-                pid=row['_pid']
-            )
-            self.problems.append(problem)
-    
-    def _create_quiz_old(self):
-        df = pd.read_csv(self.quiz_file, sep=';')
-        self.genres = df['_genre'].unique()
-        random.shuffle(self.genres)
-
-        # Fordel antall oppgaver jevnt mellom kategoriene
-        genre_counts = {genre: 1 for genre in self.genres}
-        remaining = self.num_problems - len(self.genres)
-
-        # Fordel resterende spørsmål jevnt
-        while remaining > 0:
-            for genre in self.genres:
-                if remaining == 0:
-                    break
-                genre_counts[genre] += 1
-                remaining -= 1
-
-        self.problems = []
-        used_indices = set()
-
-        for genre in self.genres:
-            df_genre = df[df['_genre'] == genre]
-            n = min(len(df_genre), genre_counts[genre])
-
-            # Tilfeldig trekning uten gjenbruk
-            chosen = df_genre.sample(n, random_state=random.randint(0, 99999))
-            used_indices.update(chosen.index)
-
-            for _, row in chosen.iterrows():
-                alts = [row['_alt1'], row['_alt2'], row['_alt3'], row['_alt4'], row['_alt5']]
-                problem = Problem(
-                    question=row['_question'],
-                    latex=row['_latex'] if pd.notna(row['_latex']) else None,
-                    alts=alts,
-                    correct_alt=row['_correct_alt'],
-                    genre=row['_genre']
-                )
-                self.problems.append(problem)
-
-        # Hvis det fortsatt mangler spørsmål (f.eks. hvis noen sjangre var for små)
-        while len(self.problems) < self.num_problems:
-            df_remaining = df[~df.index.isin(used_indices)]
-            if df_remaining.empty:
-                break  # ikke mer å hente
-
-            row = df_remaining.sample(1, random_state=random.randint(0, 99999)).iloc[0]
-            used_indices.add(row.name)
-
-            alts = [row['_alt1'], row['_alt2'], row['_alt3'], row['_alt4'], row['_alt5']]
-            problem = Problem(
-                question=row['_question'],
-                latex=row['_latex'] if pd.notna(row['_latex']) else None,
-                alts=alts,
-                correct_alt=row['_correct_alt'],
-                genre=row['_genre']
-            )
-            self.problems.append(problem)
-
+        # Hvis vi mangler noen spørsmål, hent fra resten
+        if len(self.problems) < self.num_problems:
+            remaining_problems = [p for p in all_problems if p.pid not in used_pids]
+            remaining_problems.sort(key=lambda p: get_error_rate(p.pid), reverse=True)
+            self.problems.extend(remaining_problems[:self.num_problems - len(self.problems)])
 
     def __str__(self):
         return f'IN3310-Quiz. Number of questions: {len(self.problems)} - Number of genres: {len(self.genres)}'

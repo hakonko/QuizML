@@ -2,6 +2,8 @@ import pickle
 from pathlib import Path
 from collections import defaultdict
 
+USERDATA_FILE = 'data/userdata.pkl'
+
 def default_stat():
     return {'correct': 0, 'wrong': 0}
 
@@ -23,9 +25,8 @@ class User:
         self.saved_quizzes.append(quiz)
 
 
-
 class UserDatabase:
-    def __init__(self, filepath='userdata.pkl'):
+    def __init__(self, filepath=USERDATA_FILE):
         self.filepath = Path(filepath)
         self.users = self._load_users()
 

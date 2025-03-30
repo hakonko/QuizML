@@ -12,6 +12,7 @@ from matplotlib.figure import Figure
 from datetime import datetime
 import pandas as pd
 from collections import defaultdict
+import pickle
 
 CATEGORY_NAMES = {
     "1": "Linear Models",
@@ -84,6 +85,7 @@ class DashboardApp(QWidget):
         self.num_problems_slider.setMinimum(len(CATEGORY_NAMES))
         self.num_problems_slider.setMaximum(30)
         self.num_problems_slider.setValue(20)
+        self._update_slider_label(20)
         self.num_problems_slider.valueChanged.connect(self._update_slider_label)
         left_panel.addWidget(self.num_problems_slider)
 
@@ -99,12 +101,36 @@ class DashboardApp(QWidget):
         self.edit_btn = QPushButton("Edit questions")
         self.edit_btn.clicked.connect(self.edit_callback)
 
-        for btn in [self.new_quiz_btn, self.retake_btn, self.delete_btn, self.edit_btn]:
-            btn.setStyleSheet(
-                "font-size: 14pt; padding: 10px; background-color: #8000c8; color: white; "
-                "border-radius: 10px; border: none; font-weight: bold;"
-            )
-            left_panel.addWidget(btn)
+        # --- Stilsett ---
+        purple_button_style = """
+            font-size: 14pt; padding: 10px; background-color: #8000c8; color: white;
+            border-radius: 10px; border: none; font-weight: bold;
+        """
+        outline_purple_style = """
+            font-size: 14pt; padding: 10px; background-color: transparent; color: #8000c8;
+            border-radius: 10px; border: 2px solid #8000c8; font-weight: bold;
+        """
+        outline_white_style = """
+            font-size: 14pt; padding: 10px; background-color: transparent; color: white;
+            border-radius: 10px; border: 2px solid white; font-weight: bold;
+        """
+
+        self.new_quiz_btn.setStyleSheet(purple_button_style)
+        self.retake_btn.setStyleSheet(outline_purple_style)
+        self.delete_btn.setStyleSheet(outline_purple_style)
+        self.edit_btn.setStyleSheet(outline_white_style)
+
+        # --- Layout ---
+        row1 = QHBoxLayout()
+        row1.addWidget(self.new_quiz_btn)
+        row1.addWidget(self.retake_btn)
+        left_panel.addLayout(row1)
+
+        row2 = QHBoxLayout()
+        row2.addWidget(self.delete_btn)
+        row2.addWidget(self.edit_btn)
+        left_panel.addLayout(row2)
+
 
         right_container = QWidget()
         right_container.setStyleSheet("""
@@ -220,10 +246,11 @@ class DashboardApp(QWidget):
         genre_stats = defaultdict(lambda: {"correct": 0, "total": 0})
 
         try:
-            df = pd.read_csv("quiz/quiz_3310.csv", sep=';')
-            pid_to_genre = dict(zip(df['_pid'], df['_genre'].astype(str)))
+            with open("data/quizdata.pkl", "rb") as f:
+                problems = pickle.load(f)
+            pid_to_genre = {int(p.pid): str(p.genre) for p in problems}
         except Exception as e:
-            self.stats_display.setText("Error loading quiz file.")
+            self.stats_display.setText("Error loading quiz data.")
             return
 
         for pid, stat in self.user.question_stats.items():
@@ -266,7 +293,7 @@ class DashboardApp(QWidget):
             ax.plot(range(1, len(all_accuracies) + 1), all_accuracies, color="white", marker="o", linestyle="-", linewidth=2)
             ax.set_xticks(range(1, len(all_accuracies) + 1))
             ax.set_ylim(0, 100)
-            ax.set_title("Accuracy Over Time", color="white")
+            #ax.set_title("Accuracy Over Time", color="white")
             ax.set_xlabel("Quiz #", color="white")
             ax.set_ylabel("Accuracy (%)", color="white")
             ax.tick_params(axis='x', colors='white')

@@ -9,7 +9,7 @@ from code.quiz_gui import QuizApp
 from code.editor import QuestionEditor 
 
 NUM_PROBLEMS = 20
-QUIZ_FILE = Path("quiz/quiz_3310.csv")
+QUIZ_FILE = Path("data/quizdata.pkl")
 
 class MainApp(QMainWindow):
 
@@ -75,7 +75,7 @@ class MainApp(QMainWindow):
 
 
     def open_question_editor(self): # Importér editoren
-        self.editor_window = QuestionEditor(quiz_file=QUIZ_FILE, return_callback=self.return_from_editor)  # Du kan sende inn self eller nødvendig data
+        self.editor_window = QuestionEditor(return_callback=self.return_from_editor)
         self.editor_window.show()
         self.hide()  # Skjul dashboard mens editor er oppe
 

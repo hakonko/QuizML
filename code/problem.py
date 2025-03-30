@@ -1,12 +1,13 @@
 class Problem:
     
-    def __init__(self, question, latex, alts, correct_alt, genre, pid=None):
+    def __init__(self, pid, question, latex, alternatives, correct_alt, genre, image=None):
+        self.pid = pid
         self.question = question
         self.latex = latex
-        self.alts = alts
+        self.alternatives = alternatives
         self.correct_alt = correct_alt
         self.genre = genre
-        self.pid = pid
+        self.image = image
 
     def get_question(self):
         return self.question
@@ -15,10 +16,13 @@ class Problem:
         return self.latex
     
     def get_alts(self):
-        return self.alts
+        return self.alternatives
 
     def get_correct_alt(self):
         return self.correct_alt
     
     def get_genre(self):
         return self.genre
+    
+    def get_image(self):
+        return self.image
