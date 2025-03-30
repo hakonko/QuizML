@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtCore import Qt
-from code.userdata import User, UserDatabase
+from code.userdata import User, UserDatabase, UserSettingsPopup
 from code.login_popup import LoginPopup
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -14,6 +14,7 @@ from datetime import datetime
 import pandas as pd
 from collections import defaultdict
 import pickle
+from code import __version__
 
 CATEGORY_NAMES = {
     "1": "Linear Models",
@@ -49,16 +50,24 @@ class DashboardApp(QWidget):
         self.resize(int(screen.width() * 0.95), int(screen.height() * 0.95))
         self.setStyleSheet("background-color: black;")
 
+        main_layout = QVBoxLayout()
         layout = QHBoxLayout()
 
+        # === Left Container ===
         left_container = QWidget()
         left_container.setStyleSheet("background-color: transparent;")
         left_panel = QVBoxLayout(left_container)
         left_panel.setContentsMargins(0, 0, 0, 0)
         left_panel.setSpacing(10)
-        title = QLabel("Your Quizzes")
-        title.setStyleSheet("font-size: 20pt; color: white; padding: 5px;")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        title = QLabel(f"QuizML v{__version__}")
+        title.setStyleSheet("""
+            color: white;
+            font-size: 48pt;
+            font-weight: bold;
+            padding: 5px;
+        """)
+        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         left_panel.addWidget(title)
 
         self.quiz_list = QListWidget()
@@ -134,20 +143,41 @@ class DashboardApp(QWidget):
         row2.addWidget(self.edit_btn)
         left_panel.addLayout(row2)
 
-
+        # === Right Container ===
         right_container = QWidget()
-        right_container.setStyleSheet("""
-            background-color: black;
-            border-radius: 15px;
-        """)
+        right_container.setStyleSheet("background-color: black; border-radius: 15px;")
         right_panel = QVBoxLayout(right_container)
         right_panel.setContentsMargins(20, 20, 20, 20)
         right_panel.setSpacing(10)
 
+        stats_header_layout = QHBoxLayout()
+
         stats_label = QLabel("Category Stats")
         stats_label.setStyleSheet("font-size: 24pt; color: white; background-color: black;")
-        stats_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        right_panel.addWidget(stats_label)
+        stats_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        username_label = QLabel(self.user.username)
+        username_label.setStyleSheet("font-size: 14pt; color: #8000c8;")
+        username_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        self.user_icon = QLabel(self.user.name[0].upper() if self.user.name else "?")
+        self.user_icon.setFixedSize(40, 40)
+        self.user_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.user_icon.setStyleSheet("""
+            background-color: #8000c8;
+            color: white;
+            font-weight: bold;
+            font-size: 18pt;
+            border-radius: 20px;
+        """)
+        self.user_icon.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.user_icon.mousePressEvent = lambda event: self.open_user_settings()
+
+        stats_header_layout.addWidget(username_label)
+        stats_header_layout.addWidget(self.user_icon)
+
+
+        right_panel.addLayout(stats_header_layout)
 
         self.figure = Figure(facecolor='black')
         self.canvas = FigureCanvas(self.figure)
@@ -198,8 +228,12 @@ class DashboardApp(QWidget):
 
         layout.addWidget(left_container, 2)
         layout.addWidget(right_container, 3)
-        self.setLayout(layout)
+
+        main_layout.addLayout(layout)
+        self.setLayout(main_layout)
         self.update_stats()
+
+
 
     def refresh_quiz_list(self):
         self.quiz_list.clear()
@@ -276,6 +310,10 @@ class DashboardApp(QWidget):
         self.user_db.save()
         self.close()
         self.return_to_login()
+
+    def open_user_settings(self):
+        popup = UserSettingsPopup(self.user, self.user_db, self)
+        popup.exec()
 
     def update_stats(self):
         genre_stats = defaultdict(lambda: {"correct": 0, "total": 0})

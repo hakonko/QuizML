@@ -83,7 +83,28 @@ class QuestionEditor(QWidget):
         # === Right panel ===
         right_panel = QVBoxLayout()
         form_container = QWidget()
-        form_container.setStyleSheet("background-color: white; color: black; border-radius: 10px;")
+        form_container.setStyleSheet("""
+            background-color: white;
+            color: black;
+            border-radius: 10px;
+
+            QLineEdit, QTextEdit, QComboBox, QCheckBox {
+                border: 1px solid gray;
+                border-radius: 6px;
+                padding: 6px;
+                font-size: 12pt;
+            }
+
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+            }
+
+            QCheckBox {
+                spacing: 8px;
+            }
+        """)
+
         form_layout = QVBoxLayout(form_container)
         form_layout.setContentsMargins(20, 20, 20, 20)
 
@@ -92,11 +113,28 @@ class QuestionEditor(QWidget):
         form_layout.addWidget(self.pid_label, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.question_input = QTextEdit()
+        self.question_input.setStyleSheet("border: 1px solid gray; border-radius: 6px; padding: 6px; font-size: 12pt;")
+
         self.formula_input = QLineEdit()
-        self.alt_inputs = [QLineEdit() for _ in range(5)]
-        self.alt_checks = [QCheckBox("Correct") for _ in range(5)]
+        self.formula_input.setStyleSheet("border: 1px solid gray; border-radius: 6px; padding: 6px; font-size: 12pt;")
+
+        self.alt_inputs = []
+        self.alt_checks = []
+        for _ in range(5):
+            alt_input = QLineEdit()
+            alt_input.setStyleSheet("border: 1px solid gray; border-radius: 6px; padding: 6px; font-size: 12pt;")
+
+            alt_check = QCheckBox("Correct")
+
+            self.alt_inputs.append(alt_input)
+            self.alt_checks.append(alt_check)
+
         self.genre_dropdown = QComboBox()
-        self.genre_dropdown.setStyleSheet("border: 2px solid #333333; border-radius: 6px; padding: 4px;")
+        self.genre_dropdown.setStyleSheet("border: 1px solid gray; border-radius: 6px; padding: 6px; font-size: 12pt;")
+
+        self.genre_dropdown.setEditable(True)
+        self.genre_dropdown.lineEdit().setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.genre_dropdown.setEditable(False)
 
         genres = sorted(set(p.genre for p in self.problems))
         self.genre_dropdown.addItems(genres)
@@ -115,7 +153,7 @@ class QuestionEditor(QWidget):
 
         genre_row = QHBoxLayout()
         genre_row.addWidget(self.label("Genre:"))
-        genre_row.addWidget(self.genre_dropdown)
+        genre_row.addWidget(self.genre_dropdown, stretch=1)
 
         add_image_btn = QPushButton("Add Image")
         add_image_btn.clicked.connect(self.select_image_file)

@@ -8,8 +8,8 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from pathlib import Path
 from code.quiz import Quiz
 from code.userdata import User
+from code import __version__
 
-NUM_VERSION = "0.5"
 LATIN_MODERN = "Latin Modern Roman"
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
 
@@ -37,7 +37,7 @@ class QuizApp(QWidget):
 
         # === Top status bar ===
         status_layout = QHBoxLayout()
-        self.left_status = QLabel(f"QuizML {NUM_VERSION}      User: {self.username}")
+        self.left_status = QLabel(f"QuizML {__version__}      User: {self.username}")
         self.right_status = QLabel("")
         self.left_status.setStyleSheet("color: #8000c8;")
         self.right_status.setStyleSheet("color: #8000c8;")

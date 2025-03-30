@@ -15,6 +15,7 @@ class MainApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
         self.setWindowTitle("QuizML")
         screen = QApplication.primaryScreen().availableGeometry()
         self.resize(int(screen.width() * 0.95), int(screen.height() * 0.95))
