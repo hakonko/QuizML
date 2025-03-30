@@ -19,7 +19,6 @@ class Quiz:
 
         self._create_quiz()
 
-
     def _create_quiz(self):
         try:
             with open("data/quizdata.pkl", "rb") as f:
@@ -27,7 +26,7 @@ class Quiz:
         except Exception as e:
             raise RuntimeError(f"Failed to load quizdata.pkl: {e}")
 
-        # Samle alle sjangre
+        # Get all genres
         self.genres = list({p.genre for p in all_problems})
         random.shuffle(self.genres)
 
@@ -57,7 +56,7 @@ class Quiz:
             used_pids.update(p.pid for p in selected)
             self.problems.extend(selected)
 
-        # Hvis vi mangler noen spørsmål, hent fra resten
+        # Fill up with more problems
         if len(self.problems) < self.num_problems:
             remaining_problems = [p for p in all_problems if p.pid not in used_pids]
             remaining_problems.sort(key=lambda p: get_error_rate(p.pid), reverse=True)

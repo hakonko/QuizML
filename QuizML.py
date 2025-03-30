@@ -65,25 +65,25 @@ class MainApp(QMainWindow):
         self.setCentralWidget(self.summary_window)
 
     def show_summary_quiz(self, quiz):
-        # Lagre quizresultatet før vi viser summary
+
         if quiz:
             self.user.add_quiz(quiz)
             self.user_db.save()
 
-        self.show()  # Vis MainApp-vinduet igjen
+        self.show()
         self.summary_window = SummaryWindow(quiz, return_callback=self.return_from_summary)
         self.setCentralWidget(self.summary_window)
 
 
     def return_from_summary(self):
-        # Opprett nytt dashboard-vindu
+
         self.dashboard = DashboardApp(
             self.user,
             self.user_db,
             quiz_callback=self.start_new_quiz,
             retake_callback=self.retake_quiz,
             edit_callback=self.open_question_editor,
-            summary_callback=self.show_summary_dashboard,  # <-- Denne manglet
+            summary_callback=self.show_summary_dashboard,
             return_to_login=self.return_to_login
         )
         self.setCentralWidget(self.dashboard)
@@ -97,7 +97,7 @@ class MainApp(QMainWindow):
     def return_to_login(self):
         self.user = None
         self.close()
-        self.__init__()  # Restart appen og vis login på nytt
+        self.__init__()
 
     def open_question_editor(self):
         self.editor_window = QuestionEditor(return_callback=self.return_from_editor)

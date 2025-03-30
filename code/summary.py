@@ -16,7 +16,6 @@ class SummaryBridge(QObject):
     def return_to_dashboard(self):
         self.return_callback()
 
-
 class SummaryWindow(QWidget):
     def __init__(self, quiz: Quiz, return_callback):
         super().__init__()
@@ -35,7 +34,7 @@ class SummaryWindow(QWidget):
         self.summary_view = QWebEngineView()
         layout.addWidget(self.summary_view)
 
-        # WebChannel for å koble JS-knappen til Python-callback
+        # WebChannel for connecting JS-button to Python-callback
         self.channel = QWebChannel()
         self.bridge = SummaryBridge(self.return_callback)
         self.channel.registerObject("summaryBridge", self.bridge)

@@ -16,7 +16,7 @@ class User:
         self.password_hash = password_hash
         self.saved_quizzes = saved_quizzes if saved_quizzes is not None else []
 
-        # Bruk eksisterende stats hvis det finnes, ellers lag ny defaultdict
+        # Use existing stats if populated, or else make new defaultdict
         self.question_stats = (
             defaultdict(default_stat, question_stats)
             if question_stats is not None

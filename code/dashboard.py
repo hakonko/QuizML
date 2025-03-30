@@ -113,7 +113,7 @@ class DashboardApp(QWidget):
         self.edit_btn = QPushButton("Edit questions")
         self.edit_btn.clicked.connect(self.edit_callback)
 
-        # --- Stilsett ---
+        # --- Stylings ---
         purple_button_style = """
             font-size: 14pt; padding: 10px; background-color: #8000c8; color: white;
             border-radius: 10px; border: none; font-weight: bold;
@@ -234,7 +234,6 @@ class DashboardApp(QWidget):
         self.update_stats()
 
 
-
     def refresh_quiz_list(self):
         self.quiz_list.clear()
 
@@ -244,7 +243,7 @@ class DashboardApp(QWidget):
             quiz_date = quiz.date_taken.strftime("%d. %B %Y %H:%M") if hasattr(quiz, "date_taken") else "Unknown date"
             num_questions = len(quiz.results)
 
-            # Container-widget for rad
+            # Container-widget for row
             widget = QWidget()
             layout = QHBoxLayout(widget)
             layout.setContentsMargins(4, 2, 4, 2)
@@ -366,7 +365,6 @@ class DashboardApp(QWidget):
             ax.plot(range(1, len(all_accuracies) + 1), all_accuracies, color="white", marker="o", linestyle="-", linewidth=2)
             ax.set_xticks(range(1, len(all_accuracies) + 1))
             ax.set_ylim(0, 100)
-            #ax.set_title("Accuracy Over Time", color="white")
             ax.set_xlabel("Quiz #", color="white")
             ax.set_ylabel("Accuracy (%)", color="white")
             ax.tick_params(axis='x', colors='white')
@@ -391,4 +389,3 @@ class DashboardApp(QWidget):
     def _return_from_summary(self):
         self.summary_window.close()
         self.show()
-

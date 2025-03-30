@@ -169,17 +169,17 @@ class QuizApp(QWidget):
 
         self.question_view.setHtml(question_html)
 
-        # Fjern tidligere bilde og layout hvis eksisterer
+        # Reset image and layout settings
         for i in reversed(range(self.question_area.count())):
             item = self.question_area.itemAt(i)
 
-            # Fjern widgets
+            # Remove widgets
             if item.widget() and item.widget() not in [self.question_view, self.formula_view, self.formula_title]:
                 widget = item.widget()
                 self.question_area.removeWidget(widget)
                 widget.setParent(None)
 
-            # Fjern layouts
+            # Remove layouts
             elif item.layout():
                 layout = item.layout()
                 while layout.count():
@@ -189,7 +189,7 @@ class QuizApp(QWidget):
                 self.question_area.removeItem(layout)
 
 
-        # Alternativer
+        # Alternatives
         self.button_group.setExclusive(False)
         for rb in self.radio_buttons:
             rb.setChecked(False)
@@ -198,7 +198,7 @@ class QuizApp(QWidget):
         for idx, alt in enumerate(problem.alternatives):
             self.option_views[idx].setHtml(self.render_mathjax_html(alt))
 
-        # Formel og bilde
+        # Forumla and image
         if problem.image:
             self.formula_title.setVisible(True if problem.latex else False)
             if problem.latex:
@@ -209,7 +209,6 @@ class QuizApp(QWidget):
                 pixmap = QPixmap(str(image_path)).scaledToWidth(400, Qt.TransformationMode.SmoothTransformation)
                 self.image_view.setPixmap(pixmap)
 
-                # Ny layout: tekst og bilde side ved side
                 row_layout = QHBoxLayout()
                 row_layout.addWidget(self.question_view, stretch=3)
                 img_container = QWidget()
@@ -225,7 +224,6 @@ class QuizApp(QWidget):
             self.formula_title.setVisible(bool(problem.latex))
             self.formula_view.setHtml(self.render_mathjax_html(f"$$ {problem.latex} $$") if problem.latex else "")
 
-            # Sørg for at self.question_view er synlig og i layouten
             if not any(self.question_area.itemAt(i).widget() == self.question_view for i in range(self.question_area.count())):
                 self.question_area.insertWidget(0, self.question_view)
 
