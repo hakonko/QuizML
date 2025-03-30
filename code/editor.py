@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem,
     QLineEdit, QTextEdit, QComboBox, QCheckBox, QMessageBox, QFileDialog
 )
 from PyQt6.QtCore import Qt, QTimer
@@ -14,9 +14,11 @@ class QuestionEditor(QWidget):
     def __init__(self, return_callback):
         super().__init__()
         self.return_callback = return_callback
+
         self.setWindowTitle("Edit Questions")
+        screen = QApplication.primaryScreen().availableGeometry()
+        self.resize(int(screen.width() * 0.95), int(screen.height() * 0.95))
         self.setStyleSheet("background-color: black; color: white;")
-        self.setMinimumSize(1200, 800)
 
         self.pkl_path = "data/quizdata.pkl"
         self.load_questions()
@@ -241,18 +243,26 @@ class QuestionEditor(QWidget):
             return
 
         genre = self.genre_dropdown.currentText()
-        pid = self.problems[self.selected_index].pid if self.selected_index is not None else max((p.pid for p in self.problems), default=0) + 1
+        is_new = self.selected_index is None
+        pid = self.problems[self.selected_index].pid if not is_new else max((p.pid for p in self.problems), default=0) + 1
 
         new_problem = Problem(pid, question, latex, alts, correct_alt, genre, self.image_filename)
 
-        if self.selected_index is not None:
+        if not is_new:
             self.problems[self.selected_index] = new_problem
         else:
             self.problems.append(new_problem)
 
         self.save_questions()
         self.populate_question_list()
+
+        # 👇 Select and load the new item
+        if is_new:
+            self.selected_index = len(self.problems) - 1
+            self.select_first_item()
+
         QMessageBox.information(self, "Saved", "Question saved successfully!")
+
 
     def import_from_csv(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Import Questions", "", "CSV Files (*.csv)")

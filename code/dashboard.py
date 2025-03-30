@@ -1,9 +1,10 @@
 import sys
 from pathlib import Path
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem,
-    QMessageBox, QSlider, QSpacerItem, QSizePolicy, QFrame
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem,
+    QMessageBox, QSlider, QSpacerItem, QSizePolicy, QFrame, QStyle
 )
+
 from PyQt6.QtCore import Qt
 from code.userdata import User, UserDatabase
 from code.login_popup import LoginPopup
@@ -33,17 +34,19 @@ CATEGORY_NAMES = {
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
 
 class DashboardApp(QWidget):
-    def __init__(self, user: User, user_db: UserDatabase, quiz_callback, retake_callback, edit_callback, return_to_login):
+    def __init__(self, user: User, user_db: UserDatabase, quiz_callback, retake_callback, edit_callback, summary_callback, return_to_login):
         super().__init__()
         self.user = user
         self.user_db = user_db
         self.quiz_callback = quiz_callback
         self.retake_callback = retake_callback
         self.edit_callback = edit_callback
+        self.summary_callback = summary_callback
         self.return_to_login = return_to_login
 
         self.setWindowTitle("QuizML Dashboard")
-        self.setMinimumSize(1100, 700)
+        screen = QApplication.primaryScreen().availableGeometry()
+        self.resize(int(screen.width() * 0.95), int(screen.height() * 0.95))
         self.setStyleSheet("background-color: black;")
 
         layout = QHBoxLayout()
@@ -200,15 +203,47 @@ class DashboardApp(QWidget):
 
     def refresh_quiz_list(self):
         self.quiz_list.clear()
+
         sorted_quizzes = sorted(self.user.saved_quizzes, key=lambda q: q.date_taken, reverse=True)
         for idx, quiz in enumerate(sorted_quizzes):
             percent = round((sum(quiz.results) / len(quiz.results)) * 100) if quiz.results else 0
             quiz_date = quiz.date_taken.strftime("%d. %B %Y %H:%M") if hasattr(quiz, "date_taken") else "Unknown date"
             num_questions = len(quiz.results)
-            item = QListWidgetItem(f"Quiz {idx + 1} ({percent}%, {quiz.grade}) - {quiz_date} ({num_questions} questions)")
-            item.setSizeHint(item.sizeHint())
-            item.setData(Qt.ItemDataRole.UserRole, idx)
+
+            # Container-widget for rad
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            layout.setContentsMargins(4, 2, 4, 2)
+
+            label = QLabel(f"Quiz {idx + 1} ({percent}%, {quiz.grade}) - {quiz_date} ({num_questions} questions)")
+            label.setStyleSheet("color: white; font-size: 14pt;")
+
+            info_button = QPushButton("ⓘ")
+            info_button.setStyleSheet("""
+                QPushButton {
+                    font-size: 16pt;
+                    color: white;
+                    background-color: transparent;
+                    border: none;
+                    padding-top: 0px;
+                    padding-bottom: 15px;  /* hever knappens innhold litt */
+                }
+                QPushButton:hover {
+                    color: #8000c8;
+                }
+            """)
+
+            info_button.setFixedSize(32, 32)
+            info_button.clicked.connect(lambda _, q=quiz: self._open_summary(q))
+
+            layout.addWidget(label, stretch=1)
+            layout.addWidget(info_button)
+
+            item = QListWidgetItem()
+            item.setSizeHint(widget.sizeHint())
             self.quiz_list.addItem(item)
+            self.quiz_list.setItemWidget(item, widget)
+
 
     def _update_slider_label(self, value):
         self.num_problems_label.setText(f"Number of questions: {value}")
@@ -311,3 +346,11 @@ class DashboardApp(QWidget):
             self.user_db.save()
             self.update_stats()
             QMessageBox.information(self, "Reset Complete", "All your statistics have been reset.")
+
+    def _open_summary(self, quiz):
+        self.summary_callback(quiz)
+
+    def _return_from_summary(self):
+        self.summary_window.close()
+        self.show()
+

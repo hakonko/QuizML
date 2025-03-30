@@ -13,6 +13,7 @@ class Quiz:
         self.genres = None
         self.problems = []
         self.results = []
+        self.user_answers = []
         self.date_taken = datetime.now()
         self.grade = None
 

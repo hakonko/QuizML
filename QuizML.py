@@ -6,9 +6,9 @@ from code.dashboard import DashboardApp
 from code.userdata import UserDatabase
 from code.quiz import Quiz
 from code.quiz_gui import QuizApp
-from code.editor import QuestionEditor 
+from code.editor import QuestionEditor
+from code.summary import SummaryWindow
 
-NUM_PROBLEMS = 20
 QUIZ_FILE = Path("data/quizdata.pkl")
 
 class MainApp(QMainWindow):
@@ -16,7 +16,8 @@ class MainApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("QuizML")
-        self.setGeometry(100, 100, 800, 600)
+        screen = QApplication.primaryScreen().availableGeometry()
+        self.resize(int(screen.width() * 0.95), int(screen.height() * 0.95))
 
         self.user_db = UserDatabase()
         self.user = None
@@ -34,6 +35,7 @@ class MainApp(QMainWindow):
             quiz_callback=self.start_new_quiz,
             retake_callback=self.retake_quiz,
             edit_callback=self.open_question_editor,
+            summary_callback=self.show_summary_dashboard,
             return_to_login=self.return_to_login
         )
 
@@ -46,23 +48,46 @@ class MainApp(QMainWindow):
     def start_new_quiz(self, num_questions):
         quiz = Quiz(num_questions, user_file=None, quiz_file=QUIZ_FILE, user=self.user)
         self.quiz_window = QuizApp(quiz, self.user)
-        self.quiz_window.quiz_completed.connect(self.on_quiz_complete)
+        self.quiz_window.quiz_completed.connect(self.show_summary_quiz)
         self.quiz_window.show()
         self.hide()
 
     def retake_quiz(self, quiz):
         self.quiz_window = QuizApp(quiz, self.user)
-        self.quiz_window.quiz_completed.connect(lambda _: self.on_quiz_complete(None))
+        self.quiz_window.quiz_completed.connect(self.show_summary_quiz)
         self.quiz_window.show()
         self.hide()
 
-    def on_quiz_complete(self, quiz):
+    def show_summary_dashboard(self, quiz):
+        self.dashboard.hide()
+        self.summary_window = SummaryWindow(quiz, return_callback=self.return_from_summary)
+        self.setCentralWidget(self.summary_window)
+
+    def show_summary_quiz(self, quiz):
+        # Lagre quizresultatet før vi viser summary
         if quiz:
             self.user.add_quiz(quiz)
             self.user_db.save()
-        self.show()
+
+        self.show()  # Vis MainApp-vinduet igjen
+        self.summary_window = SummaryWindow(quiz, return_callback=self.return_from_summary)
+        self.setCentralWidget(self.summary_window)
+
+
+    def return_from_summary(self):
+        # Opprett nytt dashboard-vindu
+        self.dashboard = DashboardApp(
+            self.user,
+            self.user_db,
+            quiz_callback=self.start_new_quiz,
+            retake_callback=self.retake_quiz,
+            edit_callback=self.open_question_editor,
+            summary_callback=self.show_summary_dashboard,  # <-- Denne manglet
+            return_to_login=self.return_to_login
+        )
+        self.setCentralWidget(self.dashboard)
         self.refresh_dashboard()
-    
+
     def return_from_editor(self):
         self.editor_window.close()
         self.show()
@@ -73,12 +98,10 @@ class MainApp(QMainWindow):
         self.close()
         self.__init__()  # Restart appen og vis login på nytt
 
-
-    def open_question_editor(self): # Importér editoren
+    def open_question_editor(self):
         self.editor_window = QuestionEditor(return_callback=self.return_from_editor)
         self.editor_window.show()
-        self.hide()  # Skjul dashboard mens editor er oppe
-
+        self.hide()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
