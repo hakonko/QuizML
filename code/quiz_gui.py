@@ -9,6 +9,7 @@ from pathlib import Path
 from code.quiz import Quiz
 from code.userdata import User
 from code import __version__
+import random 
 
 LATIN_MODERN = "Latin Modern Roman"
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
@@ -16,7 +17,7 @@ GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
 class QuizApp(QWidget):
     quiz_completed = pyqtSignal(object)
 
-    def __init__(self, quiz: Quiz, user: User):
+    def __init__(self, quiz: Quiz, user: User, show_formulas=True):
         super().__init__()
 
         screen = QApplication.primaryScreen().availableGeometry()
@@ -26,6 +27,9 @@ class QuizApp(QWidget):
         self.current_idx = 0
         self.username = user.username
         self.user = user
+        self.show_formulas = show_formulas
+
+        self.current_shuffled_map = []  # indeks: posisjon på skjermen → opprinnelig indeks
 
         self.setWindowTitle("QuizML")
         self.setStyleSheet("background-color: white;")
@@ -101,10 +105,23 @@ class QuizApp(QWidget):
                 background-color: #f2f2f2;
             }
         """)
+
+        self.problem_id_label = QLabel()
+        self.problem_id_label.setStyleSheet("""
+            QLabel {
+                color: gray;
+                font-size: 10pt;
+                background-color: transparent;
+                border: none;
+            }
+        """)
+
         submit_layout = QHBoxLayout()
+        submit_layout.addWidget(self.problem_id_label)
         submit_layout.addStretch()
         submit_layout.addWidget(self.submit_button)
         bottom_layout.addLayout(submit_layout)
+
 
         main_layout.addWidget(self.bottom_container, stretch=1)
         self.setLayout(main_layout)
@@ -131,18 +148,22 @@ class QuizApp(QWidget):
         <head>
         <meta charset="UTF-8">
         <style>
-        body {{
+        html, body {{
             font-family: '{LATIN_MODERN}';
             font-size: 16pt;
             color: black;
             background-color: white;
             margin: 0;
             padding: 0;
+            min-height: 100%;
+            height: auto;
+            box-sizing: border-box;
             display: block;
-            overflow: hidden;
         }}
         mjx-container[jax="SVG"] {{
             vertical-align: middle !important;
+            display: block !important;
+            overflow: visible !important;
         }}
         </style>
         <script src='https://polyfill.io/v3/polyfill.min.js?features=es6'></script>
@@ -162,24 +183,19 @@ class QuizApp(QWidget):
         </html>
         """
 
+
     def load_problem(self):
-        
         problem = self.quiz.get_problem(self.current_idx)
         question_html = self.render_mathjax_html(problem.question)
-
         self.question_view.setHtml(question_html)
 
-        # Reset image and layout settings
+        # === Rydd opp i tidligere widgets/layouts ===
         for i in reversed(range(self.question_area.count())):
             item = self.question_area.itemAt(i)
-
-            # Remove widgets
             if item.widget() and item.widget() not in [self.question_view, self.formula_view, self.formula_title]:
                 widget = item.widget()
                 self.question_area.removeWidget(widget)
                 widget.setParent(None)
-
-            # Remove layouts
             elif item.layout():
                 layout = item.layout()
                 while layout.count():
@@ -188,47 +204,58 @@ class QuizApp(QWidget):
                         inner_item.widget().setParent(None)
                 self.question_area.removeItem(layout)
 
+        # === Shuffle alternativene ===
+        original_alternatives = problem.alternatives
+        indexed_alts = list(enumerate(original_alternatives))  # (original_index, text)
+        random.shuffle(indexed_alts)
+        self.current_shuffled_map = [idx for idx, _ in indexed_alts]  # ny rekkefølge
 
-        # Alternatives
         self.button_group.setExclusive(False)
         for rb in self.radio_buttons:
             rb.setChecked(False)
         self.button_group.setExclusive(True)
 
-        for idx, alt in enumerate(problem.alternatives):
-            self.option_views[idx].setHtml(self.render_mathjax_html(alt))
+        for idx, (original_idx, alt_text) in enumerate(indexed_alts):
+            self.option_views[idx].setHtml(self.render_mathjax_html(alt_text))
 
-        # Forumla and image
+        # === Vis formel og bilde hvis det finnes ===
+        show_formula = self.show_formulas and bool(problem.latex)
+        self.formula_title.setVisible(show_formula)
+        self.formula_view.setVisible(show_formula)
+        if show_formula:
+            self.formula_view.setHtml(self.render_mathjax_html(f"$$ {problem.latex} $$"))
+        else:
+            self.formula_view.setHtml("")
+
+
         if problem.image:
-            self.formula_title.setVisible(True if problem.latex else False)
-            if problem.latex:
-                self.formula_view.setHtml(self.render_mathjax_html(f"$$ {problem.latex} $$"))
-
             image_path = Path("images") / problem.image
             if image_path.exists():
                 pixmap = QPixmap(str(image_path)).scaledToWidth(400, Qt.TransformationMode.SmoothTransformation)
-                self.image_view.setPixmap(pixmap)
+                image_label = QLabel()
+                image_label.setPixmap(pixmap)
+                image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
                 row_layout = QHBoxLayout()
                 row_layout.addWidget(self.question_view, stretch=3)
+
                 img_container = QWidget()
                 img_layout = QVBoxLayout(img_container)
                 img_layout.setContentsMargins(0, 0, 0, 0)
-                img_layout.addWidget(self.image_view, alignment=Qt.AlignmentFlag.AlignTop)
+                img_layout.addWidget(image_label, alignment=Qt.AlignmentFlag.AlignTop)
+
                 row_layout.addWidget(img_container, stretch=2)
                 self.question_area.insertLayout(0, row_layout)
             else:
-                self.image_view.clear()
-                self.image_view.setVisible(False)
+                self.formula_title.setVisible(bool(problem.latex))
         else:
-            self.formula_title.setVisible(bool(problem.latex))
-            self.formula_view.setHtml(self.render_mathjax_html(f"$$ {problem.latex} $$") if problem.latex else "")
-
             if not any(self.question_area.itemAt(i).widget() == self.question_view for i in range(self.question_area.count())):
                 self.question_area.insertWidget(0, self.question_view)
 
-
+        # === Oppdater statuslinje ===
         self.right_status.setText(f"Question {self.current_idx + 1} of {len(self.quiz.problems)}")
+        self.problem_id_label.setText(f"pid: {problem.pid}")
+
 
     def submit_answer(self):
         selected_id = self.button_group.checkedId()
@@ -238,12 +265,19 @@ class QuizApp(QWidget):
 
         problem = self.quiz.get_problem(self.current_idx)
         correct_idx = int(problem.correct_alt.replace('_alt', '')) - 1
-        self.quiz.results.append(selected_id == correct_idx)
+        correct_after_shuffle = self.current_shuffled_map.index(correct_idx)
+
+        self.quiz.results.append(selected_id == correct_after_shuffle)
         self.quiz.user_answers.append(selected_id)
+
+        # Lagre rekkefølgen for dette spørsmålet
+        if not hasattr(self.quiz, "shuffled_maps"):
+            self.quiz.shuffled_maps = []
+        self.quiz.shuffled_maps.append(self.current_shuffled_map)
 
         pid = problem.pid
         stats = self.user.question_stats.setdefault(pid, {"correct": 0, "wrong": 0})
-        if selected_id == correct_idx:
+        if selected_id == correct_after_shuffle:
             stats['correct'] += 1
         else:
             stats['wrong'] += 1
@@ -254,6 +288,7 @@ class QuizApp(QWidget):
         else:
             self.quiz_completed.emit(self.quiz)
             self.close()
+
 
     def keyPressEvent(self, event):
         key = event.key()

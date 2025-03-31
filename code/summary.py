@@ -71,16 +71,23 @@ class SummaryWindow(QWidget):
             if len(qtext) > 140:
                 qtext = qtext[:140] + "..."
             rows.append(f"<p><b>{i+1}. {qtext}</b></p><ul>")
-            for j, alt in enumerate(p.alternatives):
-                alt_id = f"_alt{j+1}"
+            # Hent shufflet rekkefølge for denne oppgaven
+            shuffled_map = getattr(self.quiz, "shuffled_maps", [list(range(5))] * len(self.quiz.problems))[i]
+            shuffled_alts = [p.alternatives[original_idx] for original_idx in shuffled_map]
+            correct_index = int(p.correct_alt.replace("_alt", "")) - 1
+            correct_after_shuffle = shuffled_map.index(correct_index)
+            user_answer = self.quiz.user_answers[i]
+
+            for j, alt_text in enumerate(shuffled_alts):
                 symbol = ""
-                if alt_id == p.correct_alt:
+                if j == correct_after_shuffle:
                     symbol = " ✅"
-                elif self.quiz.user_answers[i] == j:
+                elif j == user_answer:
                     symbol = " ❌"
-                text = alt.strip().replace("\n", " ")
+                text = alt_text.strip().replace("\n", " ")
                 rows.append(f"<li>{j+1}) {text}{symbol}</li>")
             rows.append("</ul><div class='divider'></div>")
+
 
         content = "\n".join(rows)
 

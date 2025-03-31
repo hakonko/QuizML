@@ -1,4 +1,4 @@
-# QuizML version 0.7
+# QuizML version 0.75
 
 A little quiz app built with Python and PyQt — perfect for quizzing myself on mathematical and computer related curriculum from the University of Oslo subject **IN3310 - Deep Learning for Image Analysis**.
 

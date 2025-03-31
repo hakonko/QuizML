@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem,
-    QMessageBox, QSlider, QSpacerItem, QSizePolicy, QFrame, QStyle
+    QMessageBox, QSlider, QSpacerItem, QSizePolicy, QFrame, QStyle, QCheckBox
 )
 
 from PyQt6.QtCore import Qt
@@ -95,10 +95,19 @@ class DashboardApp(QWidget):
 
         self.num_problems_slider = QSlider(Qt.Orientation.Horizontal)
         self.num_problems_slider.setMinimum(len(CATEGORY_NAMES))
-        self.num_problems_slider.setMaximum(30)
-        self.num_problems_slider.setValue(20)
-        self._update_slider_label(20)
+        self.num_problems_slider.setMaximum(50)
+        self.num_problems_slider.setValue(34)
+        self._update_slider_label(34)
         self.num_problems_slider.valueChanged.connect(self._update_slider_label)
+
+        self.show_formulas_checkbox = QCheckBox("Show formulas")
+        self.show_formulas_checkbox.setChecked(False)
+        self.show_formulas_checkbox.setStyleSheet("color: white; font-size: 14pt;")
+
+        slider_row = QHBoxLayout()
+        slider_row.addWidget(self.num_problems_label)
+        slider_row.addWidget(self.show_formulas_checkbox)
+        left_panel.addLayout(slider_row)
         left_panel.addWidget(self.num_problems_slider)
 
         self.new_quiz_btn = QPushButton("Take new quiz")
@@ -283,7 +292,8 @@ class DashboardApp(QWidget):
 
     def _start_new_quiz_with_slider(self):
         num_questions = self.num_problems_slider.value()
-        self.quiz_callback(num_questions)
+        show_formulas = self.show_formulas_checkbox.isChecked()
+        self.quiz_callback(num_questions, show_formulas)
 
     def _retake_selected(self):
         selected_items = self.quiz_list.selectedItems()
@@ -292,7 +302,8 @@ class DashboardApp(QWidget):
             return
         index = self.quiz_list.currentRow()
         quiz = self.user.saved_quizzes[index]
-        self.retake_callback(quiz)
+        show_formulas = self.show_formulas_checkbox.isChecked()
+        self.retake_callback(quiz, show_formulas)
 
     def _delete_selected(self):
         selected_items = self.quiz_list.selectedItems()

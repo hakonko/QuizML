@@ -46,15 +46,15 @@ class MainApp(QMainWindow):
         self.dashboard.refresh_quiz_list()
         self.dashboard.update_stats()
 
-    def start_new_quiz(self, num_questions):
+    def start_new_quiz(self, num_questions, show_formulas):
         quiz = Quiz(num_questions, user_file=None, quiz_file=QUIZ_FILE, user=self.user)
-        self.quiz_window = QuizApp(quiz, self.user)
+        self.quiz_window = QuizApp(quiz, self.user, show_formulas)
         self.quiz_window.quiz_completed.connect(self.show_summary_quiz)
         self.quiz_window.show()
         self.hide()
 
-    def retake_quiz(self, quiz):
-        self.quiz_window = QuizApp(quiz, self.user)
+    def retake_quiz(self, quiz, show_formulas):
+        self.quiz_window = QuizApp(quiz, self.user, show_formulas)
         self.quiz_window.quiz_completed.connect(self.show_summary_quiz)
         self.quiz_window.show()
         self.hide()
