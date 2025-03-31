@@ -8,6 +8,7 @@ from code.problem import Problem
 import shutil
 import pickle
 import os
+import pandas as pd
 
 
 class QuestionEditor(QWidget):
@@ -49,13 +50,19 @@ class QuestionEditor(QWidget):
         self.question_list.currentItemChanged.connect(self.load_question_data)
 
         left_panel = QVBoxLayout()
-        left_panel.addWidget(QLabel("Questions:"))
-        left_panel.addWidget(self.question_list)
 
-        return_btn = QPushButton("Return to Dashboard")
+        # --- Top bar with Return button ---
+        top_row = QHBoxLayout()
+        return_btn = QPushButton("← Return to Dashboard")
         return_btn.clicked.connect(self.return_callback)
         return_btn.setStyleSheet(self.black_button_style())
-        return_btn.setFixedWidth(180)
+        return_btn.setFixedWidth(220)
+        top_row.addWidget(return_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        top_row.addStretch()
+        left_panel.addLayout(top_row)
+
+        left_panel.addWidget(QLabel("Questions:"))
+        left_panel.addWidget(self.question_list)
 
         del_btn = QPushButton("Delete Selected")
         del_btn.clicked.connect(self.delete_question)
@@ -74,9 +81,22 @@ class QuestionEditor(QWidget):
         """)
         import_btn.setFixedWidth(180)
 
+        export_btn = QPushButton("Export to CSV")
+        export_btn.clicked.connect(self.export_to_csv)
+        export_btn.setStyleSheet("""
+            background-color: white;
+            color: black;
+            font-weight: bold;
+            border-radius: 10px;
+            border: 2px solid black;
+            padding: 8px 16px;
+        """)
+        export_btn.setFixedWidth(180)
+
         btn_row_left = QHBoxLayout()
         btn_row_left.addWidget(return_btn)
         btn_row_left.addWidget(import_btn)
+        btn_row_left.addWidget(export_btn)
         btn_row_left.addWidget(del_btn)
         left_panel.addLayout(btn_row_left)
 
@@ -180,8 +200,8 @@ class QuestionEditor(QWidget):
         save_btn.setFixedWidth(180)
 
         btn_row = QHBoxLayout()
-        btn_row.addWidget(add_btn)
-        btn_row.addWidget(save_btn)
+        btn_row.addWidget(add_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        btn_row.addWidget(save_btn, alignment=Qt.AlignmentFlag.AlignRight)
         form_layout.addLayout(btn_row)
 
         right_panel.addWidget(form_container)
@@ -307,7 +327,6 @@ class QuestionEditor(QWidget):
         if not file_path:
             return
         try:
-            import pandas as pd
             df = pd.read_csv(file_path, sep=';')
             imported = []
             for _, row in df.iterrows():
@@ -328,3 +347,29 @@ class QuestionEditor(QWidget):
             QMessageBox.information(self, "Import complete", f"Imported {len(imported)} problems.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Import failed: {e}")
+
+    def export_to_csv(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, "Export Questions", "", "CSV Files (*.csv)")
+        if not file_path:
+            return
+
+        try:
+            data = []
+            for p in self.problems:
+                row = {
+                    "_pid": p.pid,
+                    "_question": p.question,
+                    "_latex": p.latex,
+                    "_correct_alt": p.correct_alt,
+                    "_genre": p.genre,
+                    "_image": p.image or ""
+                }
+                for i, alt in enumerate(p.alternatives):
+                    row[f"_alt{i+1}"] = alt
+                data.append(row)
+
+            df = pd.DataFrame(data)
+            df.to_csv(file_path, sep=';', index=False)
+            QMessageBox.information(self, "Export complete", f"Exported {len(data)} problems to CSV.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Export failed: {e}")

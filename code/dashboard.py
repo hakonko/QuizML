@@ -307,8 +307,8 @@ class DashboardApp(QWidget):
 
     def _save_and_quit(self):
         self.user_db.save()
-        self.close()
-        self.return_to_login()
+        QApplication.quit()
+
 
     def open_user_settings(self):
         popup = UserSettingsPopup(self.user, self.user_db, self)

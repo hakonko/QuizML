@@ -52,6 +52,7 @@ class SummaryWindow(QWidget):
             if percent >= limit:
                 grade = g
                 break
+        self.quiz.grade = grade
 
         rows = [f"""
             <div class='summary-header'>
