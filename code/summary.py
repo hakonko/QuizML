@@ -71,23 +71,33 @@ class SummaryWindow(QWidget):
             if len(qtext) > 140:
                 qtext = qtext[:140] + "..."
             rows.append(f"<p><b>{i+1}. {qtext}</b></p><ul>")
-            # Hent shufflet rekkefølge for denne oppgaven
+
             shuffled_map = getattr(self.quiz, "shuffled_maps", [list(range(5))] * len(self.quiz.problems))[i]
             shuffled_alts = [p.alternatives[original_idx] for original_idx in shuffled_map]
-            correct_index = int(p.correct_alt.replace("_alt", "")) - 1
-            correct_after_shuffle = shuffled_map.index(correct_index)
+
+            # === Hent riktige svar etter shuffling ===
+            if isinstance(p.correct_alt, list):
+                correct_indices = [int(alt.replace("_alt", "")) - 1 for alt in p.correct_alt]
+            else:
+                correct_indices = [int(p.correct_alt.replace("_alt", "")) - 1]
+
+            correct_after_shuffle = [shuffled_map.index(i) for i in correct_indices]
+
             user_answer = self.quiz.user_answers[i]
+            if not isinstance(user_answer, list):
+                user_answer = [user_answer]
 
             for j, alt_text in enumerate(shuffled_alts):
                 symbol = ""
-                if j == correct_after_shuffle:
+                if j in correct_after_shuffle:
                     symbol = " ✅"
-                elif j == user_answer:
+                elif j in user_answer and j not in correct_after_shuffle:
                     symbol = " ❌"
+
                 text = alt_text.strip().replace("\n", " ")
                 rows.append(f"<li>{j+1}) {text}{symbol}</li>")
-            rows.append("</ul><div class='divider'></div>")
 
+            rows.append("</ul><div class='divider'></div>")
 
         content = "\n".join(rows)
 

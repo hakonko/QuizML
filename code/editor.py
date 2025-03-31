@@ -251,9 +251,13 @@ class QuestionEditor(QWidget):
         p = self.problems[idx]
         self.question_input.setPlainText(p.question)
         self.formula_input.setText(p.latex or "")
+        corrects = p.correct_alt if isinstance(p.correct_alt, list) else [p.correct_alt]
         for i in range(5):
             self.alt_inputs[i].setText(p.alternatives[i])
-            self.alt_checks[i].setChecked(p.correct_alt == f"_alt{i+1}")
+            self.alt_checks[i].setChecked(f"_alt{i+1}" in corrects)
+        # for i in range(5):
+        #     self.alt_inputs[i].setText(p.alternatives[i])
+        #     self.alt_checks[i].setChecked(p.correct_alt == f"_alt{i+1}")
         self.genre_dropdown.setCurrentText(p.genre)
         self.pid_label.setText(f"Problem ID: {p.pid}")
         self.image_filename = p.image
@@ -291,10 +295,7 @@ class QuestionEditor(QWidget):
         question = self.question_input.toPlainText().strip()
         latex = self.formula_input.text().strip()
         alts = [a.text().strip() for a in self.alt_inputs]
-        correct_alt = None
-        for i, check in enumerate(self.alt_checks):
-            if check.isChecked():
-                correct_alt = f"_alt{i+1}"
+        correct_alt = [f"_alt{i+1}" for i, check in enumerate(self.alt_checks) if check.isChecked()]
 
         if not question or not correct_alt or any(not a for a in alts):
             QMessageBox.warning(self, "Incomplete", "Please fill all alternatives and mark one as correct.")
@@ -314,7 +315,6 @@ class QuestionEditor(QWidget):
         self.save_questions()
         self.populate_question_list()
 
-        # 👇 Select and load the new item
         if is_new:
             self.selected_index = len(self.problems) - 1
             self.select_first_item()
@@ -331,12 +331,15 @@ class QuestionEditor(QWidget):
             imported = []
             for _, row in df.iterrows():
                 alts = [row[f"_alt{i+1}"] for i in range(5)]
+                correct_alt = row["_correct_alt"]
+                if isinstance(correct_alt, str) and "," in correct_alt:
+                    correct_alt = correct_alt.split(",")
                 problem = Problem(
                     pid=row["_pid"],
                     question=row["_question"],
                     latex=row.get("_latex", ""),
                     alternatives=alts,
-                    correct_alt=row["_correct_alt"],
+                    correct_alt=correct_alt,
                     genre=row["_genre"],
                     image=row.get("_image", None)
                 )
@@ -356,11 +359,14 @@ class QuestionEditor(QWidget):
         try:
             data = []
             for p in self.problems:
+                correct_alt = p.correct_alt
+                if isinstance(correct_alt, list):
+                    correct_alt = ",".join(correct_alt)
                 row = {
                     "_pid": p.pid,
                     "_question": p.question,
                     "_latex": p.latex,
-                    "_correct_alt": p.correct_alt,
+                    "_correct_alt": correct_alt,
                     "_genre": p.genre,
                     "_image": p.image or ""
                 }

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QRadioButton, QButtonGroup, QMessageBox
+    QHBoxLayout, QRadioButton, QButtonGroup, QMessageBox, QCheckBox
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QPixmap
@@ -73,21 +73,32 @@ class QuizApp(QWidget):
         bottom_layout.setContentsMargins(20, 20, 20, 20)
 
         self.button_group = QButtonGroup()
-        self.radio_buttons = []
-        self.option_views = []
+        #self.radio_buttons = []
+        #self.option_views = []
 
-        for i in range(5):
+        # for i in range(5):
+        #     row = QHBoxLayout()
+        #     rb = QRadioButton()
+        #     rb.setStyleSheet("color: black;")
+        #     self.radio_buttons.append(rb)
+        #     self.button_group.addButton(rb, i)
+
+        #     view = QWebEngineView()
+        #     view.setMinimumHeight(30)
+        #     self.option_views.append(view)
+
+        #     row.addWidget(rb)
+        #     row.addWidget(view, stretch=1)
+        #     bottom_layout.addLayout(row)
+        self.answer_widgets = []
+
+        for _ in range(5):
             row = QHBoxLayout()
-            rb = QRadioButton()
-            rb.setStyleSheet("color: black;")
-            self.radio_buttons.append(rb)
-            self.button_group.addButton(rb, i)
-
+            placeholder = QLabel()  # Dynamisk bytte senere
             view = QWebEngineView()
             view.setMinimumHeight(30)
-            self.option_views.append(view)
-
-            row.addWidget(rb)
+            self.answer_widgets.append((placeholder, view, row))
+            row.addWidget(placeholder)
             row.addWidget(view, stretch=1)
             bottom_layout.addLayout(row)
 
@@ -186,6 +197,7 @@ class QuizApp(QWidget):
 
     def load_problem(self):
         problem = self.quiz.get_problem(self.current_idx)
+        is_multi = isinstance(problem.correct_alt, list)
         question_html = self.render_mathjax_html(problem.question)
         self.question_view.setHtml(question_html)
 
@@ -210,13 +222,40 @@ class QuizApp(QWidget):
         random.shuffle(indexed_alts)
         self.current_shuffled_map = [idx for idx, _ in indexed_alts]  # ny rekkefølge
 
-        self.button_group.setExclusive(False)
-        for rb in self.radio_buttons:
-            rb.setChecked(False)
-        self.button_group.setExclusive(True)
+        # Fjern gamle knapper og views
+        for i in reversed(range(self.bottom_container.layout().count() - 1)):
+            item = self.bottom_container.layout().takeAt(i)
+            if item.layout():
+                while item.layout().count():
+                    subitem = item.layout().takeAt(0)
+                    if subitem.widget():
+                        subitem.widget().deleteLater()
+                item.layout().deleteLater()
+
+        self.option_buttons = []
+        self.option_views = []
 
         for idx, (original_idx, alt_text) in enumerate(indexed_alts):
-            self.option_views[idx].setHtml(self.render_mathjax_html(alt_text))
+            row = QHBoxLayout()
+
+            if is_multi:
+                btn = QCheckBox()
+            else:
+                btn = QRadioButton()
+                btn.setAutoExclusive(True)
+
+            btn.setStyleSheet("color: black;")
+            self.option_buttons.append(btn)
+
+            view = QWebEngineView()
+            view.setMinimumHeight(30)
+            view.setHtml(self.render_mathjax_html(alt_text))
+            self.option_views.append(view)
+
+            row.addWidget(btn)
+            row.addWidget(view, stretch=1)
+            self.bottom_container.layout().insertLayout(idx, row)
+
 
         # === Vis formel og bilde hvis det finnes ===
         show_formula = self.show_formulas and bool(problem.latex)
@@ -258,30 +297,50 @@ class QuizApp(QWidget):
 
 
     def submit_answer(self):
-        selected_id = self.button_group.checkedId()
-        if selected_id == -1:
-            QMessageBox.warning(self, "No selection", "Please select an answer.")
+        problem = self.quiz.get_problem(self.current_idx)
+        is_multi = isinstance(problem.correct_alt, list)
+
+        # === Hent brukerens valgte svar ===
+        selected_indices = [i for i, btn in enumerate(self.option_buttons) if btn.isChecked()]
+        if not selected_indices:
+            QMessageBox.warning(self, "No selection", "Please select at least one answer.")
             return
 
-        problem = self.quiz.get_problem(self.current_idx)
-        correct_idx = int(problem.correct_alt.replace('_alt', '')) - 1
-        correct_after_shuffle = self.current_shuffled_map.index(correct_idx)
+        correct_indices = []
+        if is_multi:
+            correct_indices = [
+                self.current_shuffled_map.index(int(alt.replace("_alt", "")) - 1)
+                for alt in problem.correct_alt
+            ]
+            # Poeng: +1 for hvert riktig, -1 for hvert feil, min 0
+            correct_selected = len([i for i in selected_indices if i in correct_indices])
+            incorrect_selected = len([i for i in selected_indices if i not in correct_indices])
+            score = max(correct_selected - incorrect_selected, 0)
+            was_correct = score > 0
+        else:
+            correct_index = int(problem.correct_alt.replace('_alt', '')) - 1
+            correct_after_shuffle = self.current_shuffled_map.index(correct_index)
+            score = 1 if selected_indices[0] == correct_after_shuffle else 0
+            was_correct = score == 1
 
-        self.quiz.results.append(selected_id == correct_after_shuffle)
-        self.quiz.user_answers.append(selected_id)
+        # === Lagre resultat og brukerens svar ===
+        self.quiz.results.append(was_correct)
+        self.quiz.user_answers.append(selected_indices if is_multi else selected_indices[0])
 
-        # Lagre rekkefølgen for dette spørsmålet
+        # === Lagre shufflet rekkefølge for senere oppsummering ===
         if not hasattr(self.quiz, "shuffled_maps"):
             self.quiz.shuffled_maps = []
         self.quiz.shuffled_maps.append(self.current_shuffled_map)
 
+        # === Oppdater brukerstatistikk per spørsmål ===
         pid = problem.pid
         stats = self.user.question_stats.setdefault(pid, {"correct": 0, "wrong": 0})
-        if selected_id == correct_after_shuffle:
+        if was_correct:
             stats['correct'] += 1
         else:
             stats['wrong'] += 1
 
+        # === Neste spørsmål eller avslutt ===
         self.current_idx += 1
         if self.current_idx < len(self.quiz.problems):
             self.load_problem()
@@ -289,12 +348,13 @@ class QuizApp(QWidget):
             self.quiz_completed.emit(self.quiz)
             self.close()
 
-
     def keyPressEvent(self, event):
         key = event.key()
         if Qt.Key.Key_1 <= key <= Qt.Key.Key_5:
             idx = key - Qt.Key.Key_1
-            if idx < len(self.radio_buttons):
-                self.radio_buttons[idx].setChecked(True)
+            if idx < len(self.option_buttons):
+                btn = self.option_buttons[idx]
+                btn.setChecked(not btn.isChecked()) if isinstance(btn, QCheckBox) else btn.setChecked(True)
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.submit_answer()
+
