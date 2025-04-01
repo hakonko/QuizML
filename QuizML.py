@@ -47,7 +47,9 @@ class MainApp(QMainWindow):
         self.dashboard.update_stats()
 
     def start_new_quiz(self, num_questions, show_formulas):
-        quiz = Quiz(num_questions, user_file=None, quiz_file=QUIZ_FILE, user=self.user)
+        quiz_file = self.user.current_question_set or QUIZ_FILE
+        quiz = Quiz(num_questions, user_file=None, quiz_file=quiz_file, user=self.user)
+
         self.quiz_window = QuizApp(quiz, self.user, show_formulas)
         self.quiz_window.quiz_completed.connect(self.show_summary_quiz)
         self.quiz_window.show()
@@ -65,14 +67,18 @@ class MainApp(QMainWindow):
         self.setCentralWidget(self.summary_window)
 
     def show_summary_quiz(self, quiz):
+        if quiz is None:
+            self.show()
+            self.setCentralWidget(self.dashboard)
+            return
 
-        if quiz:
-            self.user.add_quiz(quiz)
-            self.user_db.save()
+        self.user.add_quiz(quiz)
+        self.user_db.save()
 
         self.show()
         self.summary_window = SummaryWindow(quiz, return_callback=self.return_from_summary)
         self.setCentralWidget(self.summary_window)
+
 
 
     def return_from_summary(self):
@@ -100,7 +106,12 @@ class MainApp(QMainWindow):
         self.__init__()
 
     def open_question_editor(self):
-        self.editor_window = QuestionEditor(return_callback=self.return_from_editor)
+        self.editor_window = QuestionEditor(
+            return_callback=self.return_from_editor,
+            user=self.user,
+            user_db=self.user_db
+        )
+
         self.editor_window.show()
         self.hide()
 

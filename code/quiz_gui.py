@@ -127,9 +127,28 @@ class QuizApp(QWidget):
             }
         """)
 
+        # Leave button
+        self.leave_button = QPushButton("← Dashboard")
+        self.leave_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #cccccc;
+                border: 2px solid #cccccc;
+                font-weight: bold;
+                border-radius: 10px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #f2f2f2;
+            }
+        """)
+        self.leave_button.clicked.connect(self.leave_quiz)
+
+
         submit_layout = QHBoxLayout()
         submit_layout.addWidget(self.problem_id_label)
         submit_layout.addStretch()
+        submit_layout.addWidget(self.leave_button)
         submit_layout.addWidget(self.submit_button)
         bottom_layout.addLayout(submit_layout)
 
@@ -248,7 +267,7 @@ class QuizApp(QWidget):
             self.option_buttons.append(btn)
 
             view = QWebEngineView()
-            view.setMinimumHeight(30)
+            view.setMinimumHeight(40)
             view.setHtml(self.render_mathjax_html(alt_text))
             self.option_views.append(view)
 
@@ -348,13 +367,20 @@ class QuizApp(QWidget):
             self.quiz_completed.emit(self.quiz)
             self.close()
 
+    def leave_quiz(self):  
+        self.close()
+        self.quiz_completed.emit(None)  # Signal til MainApp for å vise dashboard igjen
+
+
     def keyPressEvent(self, event):
         key = event.key()
         if Qt.Key.Key_1 <= key <= Qt.Key.Key_5:
             idx = key - Qt.Key.Key_1
             if idx < len(self.option_buttons):
-                btn = self.option_buttons[idx]
-                btn.setChecked(not btn.isChecked()) if isinstance(btn, QCheckBox) else btn.setChecked(True)
+                self.option_buttons[idx].setChecked(True)
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.submit_answer()
+        elif key == Qt.Key.Key_Escape:
+            self.leave_quiz()
+
 

@@ -12,16 +12,18 @@ import pandas as pd
 
 
 class QuestionEditor(QWidget):
-    def __init__(self, return_callback):
+    def __init__(self, return_callback, user, user_db):
         super().__init__()
         self.return_callback = return_callback
+        self.user = user
+        self.user_db = user_db
 
         self.setWindowTitle("Edit Questions")
         screen = QApplication.primaryScreen().availableGeometry()
         self.resize(int(screen.width() * 0.95), int(screen.height() * 0.95))
         self.setStyleSheet("background-color: black; color: white;")
 
-        self.pkl_path = "data/quizdata.pkl"
+        self.pkl_path = self.user.current_question_set
         self.load_questions()
 
         self.selected_index = None
@@ -57,6 +59,11 @@ class QuestionEditor(QWidget):
         return_btn.clicked.connect(self.return_callback)
         return_btn.setStyleSheet(self.black_button_style())
         return_btn.setFixedWidth(220)
+        self.filename_label = QLabel("")
+        self.filename_label.setStyleSheet("color: gray; font-size: 10pt;")
+        top_row.addWidget(self.filename_label, alignment=Qt.AlignmentFlag.AlignRight)
+        self.update_filename_label()
+
         top_row.addWidget(return_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         top_row.addStretch()
         left_panel.addLayout(top_row)
@@ -68,6 +75,11 @@ class QuestionEditor(QWidget):
         del_btn.clicked.connect(self.delete_question)
         del_btn.setStyleSheet(self.black_button_style())
         del_btn.setFixedWidth(180)
+
+        change_set_btn = QPushButton("Change Set")
+        change_set_btn.clicked.connect(self.change_set)
+        change_set_btn.setStyleSheet(self.black_button_style())
+        change_set_btn.setFixedWidth(180)
 
         import_btn = QPushButton("Import from CSV")
         import_btn.clicked.connect(self.import_from_csv)
@@ -95,6 +107,7 @@ class QuestionEditor(QWidget):
 
         btn_row_left = QHBoxLayout()
         btn_row_left.addWidget(return_btn)
+        btn_row_left.addWidget(change_set_btn)
         btn_row_left.addWidget(import_btn)
         btn_row_left.addWidget(export_btn)
         btn_row_left.addWidget(del_btn)
@@ -212,8 +225,22 @@ class QuestionEditor(QWidget):
         QTimer.singleShot(0, self.select_first_item)
 
     def load_questions(self):
-        with open(self.pkl_path, "rb") as f:
-            self.problems = pickle.load(f)
+        try:
+            with open(self.pkl_path, "rb") as f:
+                data = pickle.load(f)
+
+            # Sjekk at det er en liste av `Problem`-objekter
+            if not isinstance(data, list) or not all(hasattr(p, "question") and hasattr(p, "alternatives") for p in data):
+                raise ValueError("Wrong file type")
+
+            self.problems = data
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error loading file", f"Could not load file:\n{self.pkl_path}\n\nReason: {str(e)}")
+            self.problems = []
+            self.pkl_path = "data/quizdata.pkl"
+            self.user.current_question_set = self.pkl_path
+            self.user_db.save()
 
     def save_questions(self):
         with open(self.pkl_path, "wb") as f:
@@ -250,7 +277,7 @@ class QuestionEditor(QWidget):
         self.selected_index = idx
         p = self.problems[idx]
         self.question_input.setPlainText(p.question)
-        self.formula_input.setText(p.latex or "")
+        self.formula_input.setText(str(p.latex) if isinstance(p.latex, str) else "")
         corrects = p.correct_alt if isinstance(p.correct_alt, list) else [p.correct_alt]
         for i in range(5):
             self.alt_inputs[i].setText(p.alternatives[i])
@@ -379,3 +406,43 @@ class QuestionEditor(QWidget):
             QMessageBox.information(self, "Export complete", f"Exported {len(data)} problems to CSV.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Export failed: {e}")
+
+    def update_filename_label(self):
+        if hasattr(self, "current_file_label"):
+            self.current_file_label.setText(self.pkl_path)
+
+
+    def change_set(self):
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle("Change Question Set")
+        msg_box.setText("Choose how to load a new set of questions:")
+        load_btn = msg_box.addButton("Load Existing", QMessageBox.ButtonRole.AcceptRole)
+        new_btn = msg_box.addButton("Start From Blank", QMessageBox.ButtonRole.DestructiveRole)
+        cancel_btn = msg_box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+
+        msg_box.exec()
+
+        if msg_box.clickedButton() == load_btn:
+            file_path, _ = QFileDialog.getOpenFileName(self, "Load Questions", "", "Pickle Files (*.pkl)")
+            if file_path:
+                self.pkl_path = file_path
+                self.user.current_question_set = file_path
+                self.user_db.save()
+                self.update_filename_label()
+                self.load_questions()
+                self.populate_question_list()
+                self.new_question()
+
+        elif msg_box.clickedButton() == new_btn:
+            file_path, _ = QFileDialog.getSaveFileName(self, "Create New Question Set", "", "Pickle Files (*.pkl)")
+            if file_path:
+                self.pkl_path = file_path
+                self.user.current_question_set = file_path
+                self.user_db.save()
+                self.update_filename_label()
+                self.problems = []
+                self.save_questions()
+                self.populate_question_list()
+                self.new_question()
+
+

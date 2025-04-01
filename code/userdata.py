@@ -10,11 +10,14 @@ def default_stat():
     return {'correct': 0, 'wrong': 0}
 
 class User:
-    def __init__(self, name, username, password_hash, saved_quizzes=None, question_stats=None):
+    def __init__(self, name, username, password_hash, saved_quizzes=None, question_stats=None, current_question_set=None):
         self.name = name
         self.username = username
         self.password_hash = password_hash
         self.saved_quizzes = saved_quizzes if saved_quizzes is not None else []
+
+        self.current_question_set = current_question_set or "data/quizdata.pkl"
+
 
         # Use existing stats if populated, or else make new defaultdict
         self.question_stats = (
@@ -40,6 +43,8 @@ class UserDatabase:
             for user in self.users.values():
                 if not isinstance(user.question_stats, defaultdict):
                     user.question_stats = defaultdict(default_stat, user.question_stats)
+                if not hasattr(user, "current_question_set"):
+                    user.current_question_set = "data/quizdata.pkl"
         else:
             self.users = {}
             
