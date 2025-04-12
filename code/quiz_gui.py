@@ -10,6 +10,7 @@ from code.quiz import Quiz
 from code.userdata import User
 from code import __version__
 import random 
+import time
 
 LATIN_MODERN = "Latin Modern Roman"
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
@@ -353,7 +354,7 @@ class QuizApp(QWidget):
 
         # === Oppdater brukerstatistikk per spørsmål ===
         pid = problem.pid
-        stats = self.user.question_stats.setdefault(pid, {"correct": 0, "wrong": 0})
+        stats = self.user.question_stats.setdefault(pid, {"correct": 0, "wrong": 0, "last_timestamp": 0})
         if was_correct:
             stats['correct'] += 1
         else:
@@ -366,6 +367,7 @@ class QuizApp(QWidget):
         else:
             self.quiz_completed.emit(self.quiz)
             self.close()
+        stats['last_timestamp'] = time.time()
 
     def leave_quiz(self):  
         self.close()

@@ -3,6 +3,7 @@ from pathlib import Path
 from collections import defaultdict
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt
+import time
 
 USERDATA_FILE = 'data/userdata.pkl'
 
@@ -14,7 +15,8 @@ class User:
         self.name = name
         self.username = username
         self.password_hash = password_hash
-        self.saved_quizzes = saved_quizzes if saved_quizzes is not None else []
+        self.saved_quizzes = saved_quizzes or []
+        self.question_stats = question_stats or {}
 
         self.current_question_set = current_question_set or "data/quizdata.pkl"
 
@@ -28,6 +30,14 @@ class User:
 
     def add_quiz(self, quiz):
         self.saved_quizzes.append(quiz)
+
+    def update_question_stat(self, pid, correct):
+        if pid not in self.question_stats:
+            self.question_stats[pid] = [0, 0, time.time()]
+        if correct:
+            self.question_stats[pid][0] += 1
+        self.question_stats[pid][1] += 1
+        self.question_stats[pid][2] = time.time()
 
 
 class UserDatabase:

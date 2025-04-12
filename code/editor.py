@@ -68,7 +68,15 @@ class QuestionEditor(QWidget):
         top_row.addStretch()
         left_panel.addLayout(top_row)
 
-        left_panel.addWidget(QLabel("Questions:"))
+        header_row = QHBoxLayout()
+        questions_label = QLabel("Questions")
+        questions_label.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        accuracy_label = QLabel("User Accuracy")
+        accuracy_label.setStyleSheet("font-size: 14pt; font-weight: bold; color: white;")
+        header_row.addWidget(questions_label)
+        header_row.addStretch()
+        header_row.addWidget(accuracy_label)
+        left_panel.addLayout(header_row)
         left_panel.addWidget(self.question_list)
 
         del_btn = QPushButton("Delete Selected")
@@ -261,9 +269,25 @@ class QuestionEditor(QWidget):
         self.question_list.clear()
         for i, p in enumerate(self.problems):
             preview = p.question[:40] + ("..." if len(p.question) > 40 else "")
-            item = QListWidgetItem(f"{p.pid} {p.genre}: \"{preview}\"")
+            
+            # Legg til accuracy
+            stats = self.user.question_stats.get(p.pid, {"correct": 0, "wrong": 0})
+            correct = stats.get("correct", 0)
+            wrong = stats.get("wrong", 0)
+            total = correct + wrong
+            
+            if total > 0:
+                accuracy = correct / total
+                accuracy_str = f"{accuracy:.0%}"  # viser accuracy som prosent
+            else:
+                accuracy_str = "N/A"
+            
+            item_text = f"{p.pid} {p.genre}: \"{preview}\" | Accuracy: {accuracy_str}"
+            
+            item = QListWidgetItem(item_text)
             item.setData(Qt.ItemDataRole.UserRole, i)
             self.question_list.addItem(item)
+
 
     def select_first_item(self):
         if self.question_list.count() > 0:

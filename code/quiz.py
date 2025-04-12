@@ -3,6 +3,8 @@ import random
 import pickle
 from code.problem import Problem
 from datetime import datetime
+import time
+from collections import defaultdict
 
 class Quiz:
     def __init__(self, num_problems, user_file=None, quiz_file=None, user=None):
@@ -26,7 +28,31 @@ class Quiz:
         except Exception as e:
             raise RuntimeError(f"Failed to load quizdata.pkl: {e}")
 
-        # Get all genres
+        current_time = time.time()
+        ten_days_seconds = 10 * 24 * 3600
+
+        def get_accuracy(pid):
+            stats = self.user.question_stats.get(pid, {"correct": 0, "wrong": 0, "last_timestamp": 0})
+            total = stats["correct"] + stats["wrong"]
+            accuracy = (stats["correct"] / total) if total else 0.5
+            last_timestamp = stats.get("last_timestamp", 0)
+            return accuracy, last_timestamp
+
+        # Kategoriser spørsmål basert på accuracy og tid siden sist sett
+        prioritized, neutral, skipped = [], [], []
+
+        for p in all_problems:
+            accuracy, last_timestamp = get_accuracy(p.pid)
+            time_since_last_seen = current_time - last_timestamp
+
+            if accuracy > 0.8 and time_since_last_seen < ten_days_seconds:
+                skipped.append(p)
+            elif accuracy < 0.6:
+                prioritized.append(p)
+            else:
+                neutral.append(p)
+
+        # Sikre jevn kategorifordeling
         self.genres = list({p.genre for p in all_problems})
         random.shuffle(self.genres)
 
@@ -41,25 +67,46 @@ class Quiz:
                 remaining -= 1
 
         self.problems = []
-
-        def get_error_rate(pid):
-            stats = self.user.question_stats.get(pid, {"correct": 0, "wrong": 0})
-            total = stats["correct"] + stats["wrong"]
-            return (stats["wrong"] / total) if total > 0 else 0.5
-
         used_pids = set()
+
+        # Først velg prioriterte
         for genre in self.genres:
-            genre_problems = [p for p in all_problems if p.genre == genre and p.pid not in used_pids]
+            genre_problems = [p for p in prioritized if p.genre == genre and p.pid not in used_pids]
             n = min(len(genre_problems), genre_counts[genre])
-            genre_problems.sort(key=lambda p: get_error_rate(p.pid), reverse=True)
+            random.shuffle(genre_problems)
             selected = genre_problems[:n]
             used_pids.update(p.pid for p in selected)
             self.problems.extend(selected)
+            genre_counts[genre] -= len(selected)
 
-        # Fill up with more problems
+        # Så nøytrale spørsmål
+        for genre in self.genres:
+            remaining_slots = genre_counts[genre]
+            if remaining_slots > 0:
+                genre_problems = [p for p in neutral if p.genre == genre and p.pid not in used_pids]
+                n = min(len(genre_problems), remaining_slots)
+                random.shuffle(genre_problems)
+                selected = genre_problems[:n]
+                used_pids.update(p.pid for p in selected)
+                self.problems.extend(selected)
+                genre_counts[genre] -= len(selected)
+
+        # Til slutt spørsmål som tidligere ble hoppet over
+        for genre in self.genres:
+            remaining_slots = genre_counts[genre]
+            if remaining_slots > 0:
+                genre_problems = [p for p in skipped if p.genre == genre and p.pid not in used_pids]
+                n = min(len(genre_problems), remaining_slots)
+                random.shuffle(genre_problems)
+                selected = genre_problems[:n]
+                used_pids.update(p.pid for p in selected)
+                self.problems.extend(selected)
+                genre_counts[genre] -= len(selected)
+
+        # Hvis fortsatt ikke nok spørsmål, fyll tilfeldig
         if len(self.problems) < self.num_problems:
             remaining_problems = [p for p in all_problems if p.pid not in used_pids]
-            remaining_problems.sort(key=lambda p: get_error_rate(p.pid), reverse=True)
+            random.shuffle(remaining_problems)
             self.problems.extend(remaining_problems[:self.num_problems - len(self.problems)])
 
     def __str__(self):
