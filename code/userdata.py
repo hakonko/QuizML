@@ -4,6 +4,7 @@ from collections import defaultdict
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt
 import time
+import os
 
 USERDATA_FILE = 'data/userdata.pkl'
 
@@ -145,6 +146,16 @@ class UserSettingsPopup(QDialog):
         layout.addWidget(QLabel("New Password:"))
         layout.addWidget(self.password_input)
 
+        # OpenAI API key input
+        self.api_key_input = QLineEdit()
+        existing_api_key = os.getenv("OPENAI_API_KEY", "")
+        self.api_key_input.setText(existing_api_key)
+        self.api_key_input.setPlaceholderText("Enter OpenAI API Key here...")
+
+        layout.addWidget(QLabel("OpenAI API Key:"))
+        layout.addWidget(self.api_key_input)
+
+
         self.save_btn = QPushButton("Save Changes")
         self.save_btn.clicked.connect(self.save_changes)
         layout.addWidget(self.save_btn)
@@ -167,8 +178,41 @@ class UserSettingsPopup(QDialog):
             hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
             self.user.password_hash = hashed
 
+        # Lagre OpenAI API-nøkkel til .env-fil
+        api_key = self.api_key_input.text().strip()
+        self._save_api_key_to_env(api_key)
+
         self.user_db.save()
         self.accept()
+
+    def _save_api_key_to_env(self, api_key):
+        env_path = Path(".env")
+        env_lines = []
+
+        # Hvis .env-filen allerede finnes, les og oppdater eksisterende nøkkel
+        if env_path.exists():
+            with env_path.open("r") as f:
+                env_lines = f.readlines()
+            
+            # Sjekk om OPENAI_API_KEY allerede finnes
+            updated = False
+            for i, line in enumerate(env_lines):
+                if line.startswith("OPENAI_API_KEY="):
+                    env_lines[i] = f'OPENAI_API_KEY="{api_key}"\n'
+                    updated = True
+                    break
+
+            # Hvis nøkkelen ikke eksisterte fra før, legg den til
+            if not updated:
+                env_lines.append(f'OPENAI_API_KEY="{api_key}"\n')
+        else:
+            # Opprett ny .env-fil
+            env_lines.append(f'OPENAI_API_KEY="{api_key}"\n')
+
+        # Skriv endringene tilbake til .env
+        with env_path.open("w") as f:
+            f.writelines(env_lines)
+
 
     def confirm_delete(self):
         confirm = QMessageBox.question(

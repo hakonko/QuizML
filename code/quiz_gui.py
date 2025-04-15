@@ -1,16 +1,24 @@
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QRadioButton, QButtonGroup, QMessageBox, QCheckBox
+    QHBoxLayout, QRadioButton, QButtonGroup, QMessageBox, QCheckBox,
+    QDialog, QTextEdit
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from pathlib import Path
 from code.quiz import Quiz
 from code.userdata import User
 from code import __version__
 import random 
 import time
+import openai
+from dotenv import load_dotenv
+import os
+import re
+import html
+
+load_dotenv()
 
 LATIN_MODERN = "Latin Modern Roman"
 GRADE_LIMITS = {90: 'A', 72: 'B', 62: 'C', 48: 'D', 38: 'E', 29: 'F'}
@@ -74,23 +82,6 @@ class QuizApp(QWidget):
         bottom_layout.setContentsMargins(20, 20, 20, 20)
 
         self.button_group = QButtonGroup()
-        #self.radio_buttons = []
-        #self.option_views = []
-
-        # for i in range(5):
-        #     row = QHBoxLayout()
-        #     rb = QRadioButton()
-        #     rb.setStyleSheet("color: black;")
-        #     self.radio_buttons.append(rb)
-        #     self.button_group.addButton(rb, i)
-
-        #     view = QWebEngineView()
-        #     view.setMinimumHeight(30)
-        #     self.option_views.append(view)
-
-        #     row.addWidget(rb)
-        #     row.addWidget(view, stretch=1)
-        #     bottom_layout.addLayout(row)
         self.answer_widgets = []
 
         for _ in range(5):
@@ -128,7 +119,6 @@ class QuizApp(QWidget):
             }
         """)
 
-        # Leave button
         self.leave_button = QPushButton("← Dashboard")
         self.leave_button.setStyleSheet("""
             QPushButton {
@@ -145,22 +135,39 @@ class QuizApp(QWidget):
         """)
         self.leave_button.clicked.connect(self.leave_quiz)
 
-
+        # Opprett først layouten!
         submit_layout = QHBoxLayout()
         submit_layout.addWidget(self.problem_id_label)
         submit_layout.addStretch()
         submit_layout.addWidget(self.leave_button)
         submit_layout.addWidget(self.submit_button)
-        bottom_layout.addLayout(submit_layout)
 
+        # Så definerer du hint-knappen:
+        self.hint_button = QPushButton("Get Hint")
+        self.hint_button.clicked.connect(self.get_hint)
+        self.hint_button.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: #4CAF50;
+                border: 2px solid #4CAF50;
+                font-weight: bold;
+                border-radius: 10px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #f2f2f2;
+            }
+        """)
+        submit_layout.addWidget(self.hint_button)
+
+        # Legg hele layouten inn i bottom_layout til slutt:
+        bottom_layout.addLayout(submit_layout)
 
         main_layout.addWidget(self.bottom_container, stretch=1)
         self.setLayout(main_layout)
         self.load_problem()
 
     def render_mathjax_html(self, content):
-        import html
-        import re
 
         if not isinstance(content, str):
             content = str(content)
@@ -214,10 +221,88 @@ class QuizApp(QWidget):
         </html>
         """
 
+    def render_mathjax_html_hint(self, content):
+        import re
+        import html
+
+        if not isinstance(content, str):
+            content = str(content)
+
+        # Escape hele teksten, slik at HTML blir trygg,
+        # men la spesifikke HTML-tags (som <b>, <i> og <br>) bli gjenopprettet
+        content = html.escape(content, quote=False)
+        allowed_tags = ['br', 'b', 'i']
+        for tag in allowed_tags:
+            content = content.replace(f"&lt;{tag}&gt;", f"<{tag}>").replace(f"&lt;/{tag}&gt;", f"</{tag}>")
+
+        # Konverter markdown-bold til HTML <b>-tagger
+        content = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', content)
+        
+        # Bruk et forbedret regex-mønster for å fange inline-matte
+        pattern = re.compile(r"(\$(?:\\.|[^$\\])+\$|\\\((?:\\.|[^\\])+\\\))")
+
+        def replace_math(match):
+            # Unescape matteuttrykket slik at backslashene blir riktig
+            math_expr = html.unescape(match.group(0))
+            return f"<span class='math'>{math_expr}</span>"
+        content = pattern.sub(replace_math, content)
+
+        # Bytt ut nye linjer med <br>
+        content = content.replace("\n", "<br>")
+
+        # Legg også inn et onload-script som tvinger MathJax til å typesette alt når siden er lastet
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+            html, body {{
+                font-family: '{LATIN_MODERN}';
+                font-size: 16pt;
+                color: #2E7D32; /* Grønn tekst */
+                background-color: white;
+                margin: 0;
+                padding: 15px;
+                box-sizing: border-box;
+            }}
+            mjx-container[jax="SVG"] {{
+                vertical-align: middle !important;
+                display: inline !important;
+                overflow: visible !important;
+            }}
+            </style>
+            <script src='https://polyfill.io/v3/polyfill.min.js?features=es6'></script>
+            <script>
+            window.MathJax = {{
+                tex: {{
+                    inlineMath: [['$', '$'], ['\\(', '\\)']]
+                }},
+                svg: {{ fontCache: 'global' }},
+                options: {{
+                    processHtmlClass: 'math',
+                    ignoreHtmlClass: 'tex2jax_ignore'
+                }}
+            }};
+            </script>
+            <script type='text/javascript' id='MathJax-script' async
+                src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'>
+            </script>
+            <script>
+            window.onload = function() {{
+                MathJax.typesetPromise();
+            }};
+            </script>
+        </head>
+        <body>
+            {content}
+        </body>
+        </html>
+        """
 
     def load_problem(self):
         problem = self.quiz.get_problem(self.current_idx)
-        is_multi = isinstance(problem.correct_alt, list)
+        is_multi = isinstance(problem.correct_alt, list) and len(problem.correct_alt) > 1
         question_html = self.render_mathjax_html(problem.question)
         self.question_view.setHtml(question_html)
 
@@ -376,13 +461,134 @@ class QuizApp(QWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
+        modifiers = event.modifiers()
+
+        # Toggle alternativ-knapper med tastene 1–5
         if Qt.Key.Key_1 <= key <= Qt.Key.Key_5:
             idx = key - Qt.Key.Key_1
             if idx < len(self.option_buttons):
-                self.option_buttons[idx].setChecked(True)
+                btn = self.option_buttons[idx]
+                btn.setChecked(not btn.isChecked())  # Toggle av/på
+
+        # Submit med Enter
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.submit_answer()
+
+        # Forlat quiz med Escape
         elif key == Qt.Key.Key_Escape:
             self.leave_quiz()
 
+        # Lukk vinduet med Command+W (Mac) eller Ctrl+W (Win/Linux)
+        elif key == Qt.Key.Key_W and (modifiers & Qt.KeyboardModifier.ControlModifier or modifiers & Qt.KeyboardModifier.MetaModifier):
+            self.close()
+
+
+    def get_hint(self):
+        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if not api_key:
+            QMessageBox.warning(
+                self, 
+                "Missing API Key", 
+                "OpenAI API key is missing. Please add it in user settings."
+            )
+            return
+
+        problem = self.quiz.get_problem(self.current_idx)
+        question_text = problem.question
+        alternatives = problem.alternatives
+        alternatives_text = "\n".join([f"Alternative {i+1}: {alt}" for i, alt in enumerate(alternatives)])
+
+        client = openai.OpenAI(api_key=api_key)
+        try:
+            completion = client.chat.completions.create(
+                model="gpt-4-turbo",
+                messages=[
+                    {"role": "system", "content": (
+                        "You are a helpful tutor assisting students with quizzes. "
+                        "Briefly show how to identify the correct alternative(s) below. "
+                        "Don't state the alternative number(s), as it will be different in the user-output. "
+                        "Use clear reasoning or concise mathematical formulas (LaTeX). "
+                        "Keep the explanation short (max three sentences). "
+                        "Use '**bold**' for important points and '$...$' for inline formulas. Do not use italics."
+                    )},
+                    {"role": "user", "content": (
+                        f"{question_text}\n\n{alternatives_text}\n\n"
+                        "Explain briefly how to identify the correct alternative(s)."
+                    )}
+                ],
+                temperature=0.2,
+                max_tokens=400
+            )
+
+            # Sjekk om svaret inneholder noe
+            if not completion.choices:
+                raise Exception("No choices returned from API.")
+
+            hint_text = completion.choices[0].message.content.strip()
+        except Exception as e:
+            # Logg feilen, og vis fallback-melding i popupen.
+            print("API error:", e)
+            hint_text = "Hint not received. Please try again."
+            # Du kan eventuelt også bruke QMessageBox.warning, men for hint-dialogen kan du vise fallback-tekst.
+
+        hint_text_html = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', hint_text).replace('\n', '<br>')
+        hint_html = self.render_mathjax_html_hint(f'{hint_text_html}')
+
+        # Opprett popup-vindu med Refresh-knapp (hvis nødvendig)
+        hint_dialog = QDialog(self)
+        hint_dialog.setWindowTitle("Hint from GPT")
+        hint_dialog.setMinimumSize(700, 500)
+        hint_dialog.setStyleSheet("background-color: white;")
+
+        layout = QVBoxLayout(hint_dialog)
+
+        # Topp-bar med Refresh- og Close-knapper
+        top_bar = QHBoxLayout()
+        top_bar.addStretch()
+
+        refresh_button = QPushButton("Refresh")
+        refresh_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #4CAF50;
+                font-weight: bold;
+                border: 1px solid #4CAF50;
+                border-radius: 5px;
+                padding: 5px 10px;
+                font-size: 10pt;
+            }
+            QPushButton:hover {
+                background-color: #e6f5e9;
+            }
+        """)
+        refresh_button.clicked.connect(lambda: hint_view.setHtml(hint_html))
+        top_bar.addWidget(refresh_button)
+
+        close_button = QPushButton("Close")
+        close_button.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #888;
+                font-weight: bold;
+                border: none;
+                padding: 5px;
+                font-size: 12pt;
+            }
+            QPushButton:hover {
+                color: black;
+            }
+        """)
+        close_button.clicked.connect(hint_dialog.accept)
+        top_bar.addWidget(close_button)
+        layout.addLayout(top_bar)
+
+        # Hint-innhold
+        hint_view = QWebEngineView()
+        layout.addWidget(hint_view)
+
+        # Sett inn HTML-innholdet – om det fremdeles er blankt, kan brukeren trykke Refresh.
+        # Vi setter det direkte her:
+        hint_view.setHtml(hint_html)
+
+        hint_dialog.exec()
 
